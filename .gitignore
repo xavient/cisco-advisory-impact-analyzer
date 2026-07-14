@@ -1,0 +1,19 @@
+# Secrets
+.env
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Inputs / outputs
+inventory.xlsx
+analysis_output_*.xlsx
+~$*.xlsx
+
+# Temp CSAF downloads (created via tempfile)
+csaf_*/
+
+# macOS
+.DS_Store
