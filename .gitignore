@@ -17,3 +17,6 @@ csaf_*/
 
 # macOS
 .DS_Store
+
+# Editor / harness config
+.claude/

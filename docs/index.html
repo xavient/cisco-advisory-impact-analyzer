@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Cisco Advisory Impact Analyzer</title>
+<meta name="description" content="Know which of your Cisco firewalls are affected by a security advisory. Paste an ERP link, get an Excel impact report." />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%2322d3ee' d='M12 1 3 5v6c0 5 3.8 9.7 9 11 5.2-1.3 9-6 9-11V5l-9-4Z'/%3E%3Cpath fill='%23071018' d='m11 15-2.5-2.5 1.4-1.4L11 12.2l3.1-3.1 1.4 1.4L11 15Z'/%3E%3C/svg%3E" />
+<style>
+  :root {
+    --bg: #070b14;
+    --bg-2: #0a1120;
+    --panel: rgba(255,255,255,0.035);
+    --panel-2: rgba(255,255,255,0.05);
+    --border: rgba(148,163,184,0.16);
+    --text: #e7eef8;
+    --muted: #93a4bd;
+    --accent: #22d3ee;
+    --accent-2: #38bdf8;
+    --green: #34d399;
+    --code-bg: #0b1424;
+    --radius: 14px;
+    --maxw: 960px;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    color: var(--text);
+    background:
+      radial-gradient(1100px 520px at 78% -10%, rgba(34,211,238,0.16), transparent 60%),
+      radial-gradient(900px 480px at 10% 6%, rgba(56,189,248,0.10), transparent 55%),
+      linear-gradient(180deg, var(--bg-2), var(--bg));
+    background-attachment: fixed;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+  /* faint grid overlay */
+  body::before {
+    content: "";
+    position: fixed; inset: 0; z-index: 0; pointer-events: none;
+    background-image:
+      linear-gradient(rgba(148,163,184,0.05) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(148,163,184,0.05) 1px, transparent 1px);
+    background-size: 46px 46px;
+    mask-image: radial-gradient(circle at 50% 0%, #000 0%, transparent 75%);
+  }
+  .wrap { position: relative; z-index: 1; max-width: var(--maxw); margin: 0 auto; padding: 0 22px; }
+  a { color: var(--accent-2); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  header.site {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 26px 0 8px;
+  }
+  header.site img.logo { height: 30px; width: auto; opacity: .95; }
+  header.site .nav a { color: var(--muted); font-size: 14px; margin-left: 20px; }
+  header.site .nav a:hover { color: var(--text); }
+
+  .hero { padding: 60px 0 34px; text-align: center; }
+  .eyebrow {
+    display: inline-flex; align-items: center; gap: 8px;
+    font-size: 12px; letter-spacing: .14em; text-transform: uppercase;
+    color: var(--accent); border: 1px solid var(--border);
+    background: var(--panel); padding: 6px 12px; border-radius: 999px;
+  }
+  .eyebrow .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green); box-shadow: 0 0 10px var(--green); }
+  h1 {
+    font-size: clamp(34px, 6vw, 56px); line-height: 1.05; margin: 22px 0 10px;
+    letter-spacing: -0.02em;
+    background: linear-gradient(180deg, #ffffff, #a9c4dd);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+  .tagline { font-size: clamp(17px, 2.4vw, 21px); color: var(--text); margin: 0 auto 14px; max-width: 720px; }
+  .lede { color: var(--muted); max-width: 680px; margin: 0 auto 30px; }
+
+  .cta { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; }
+  .btn {
+    display: inline-flex; align-items: center; gap: 10px;
+    font-weight: 600; font-size: 16px; padding: 13px 22px; border-radius: 12px;
+    border: 1px solid transparent; cursor: pointer;
+  }
+  .btn-primary {
+    color: #04121a;
+    background: linear-gradient(135deg, var(--accent), var(--accent-2));
+    box-shadow: 0 10px 30px rgba(34,211,238,0.30);
+  }
+  .btn-primary:hover { text-decoration: none; filter: brightness(1.06); transform: translateY(-1px); }
+  .btn-ghost { color: var(--text); border-color: var(--border); background: var(--panel); }
+  .btn-ghost:hover { text-decoration: none; border-color: rgba(148,163,184,0.4); }
+  .btn small { font-weight: 500; opacity: .8; }
+
+  .subnote { color: var(--muted); font-size: 13px; margin-top: 14px; }
+
+  section.block { padding: 30px 0; }
+  h2 { font-size: 24px; letter-spacing: -0.01em; margin: 8px 0 18px; }
+  h2 .num { color: var(--accent); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 18px; margin-right: 10px; }
+
+  .grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  .card {
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 20px;
+  }
+  .card h3 { margin: 6px 0 6px; font-size: 16px; }
+  .card p { margin: 0; color: var(--muted); font-size: 14.5px; }
+  .card .ico { width: 30px; height: 30px; color: var(--accent); }
+
+  .panel {
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 22px 24px;
+  }
+  ul.check { list-style: none; padding: 0; margin: 0; }
+  ul.check li { padding: 8px 0 8px 30px; position: relative; color: var(--text); }
+  ul.check li::before {
+    content: ""; position: absolute; left: 0; top: 13px;
+    width: 9px; height: 9px; border-radius: 50%;
+    background: var(--accent); box-shadow: 0 0 10px rgba(34,211,238,0.7);
+  }
+  ul.check li span { color: var(--muted); }
+
+  ol.steps { counter-reset: s; list-style: none; padding: 0; margin: 0; }
+  ol.steps > li {
+    position: relative; padding: 4px 0 22px 46px; margin: 0;
+  }
+  ol.steps > li::before {
+    counter-increment: s; content: counter(s);
+    position: absolute; left: 0; top: 0;
+    width: 30px; height: 30px; border-radius: 9px;
+    display: grid; place-items: center;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-weight: 700; font-size: 14px;
+    color: var(--accent); background: rgba(34,211,238,0.10); border: 1px solid var(--border);
+  }
+  ol.steps > li::after {
+    content: ""; position: absolute; left: 15px; top: 34px; bottom: 6px; width: 1px;
+    background: var(--border);
+  }
+  ol.steps > li:last-child::after { display: none; }
+  ol.steps b { color: var(--text); }
+  ol.steps .os { color: var(--muted); font-size: 13px; }
+
+  pre {
+    background: var(--code-bg); border: 1px solid var(--border); border-radius: 10px;
+    padding: 14px 16px; overflow-x: auto; margin: 12px 0 0;
+  }
+  code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 13.5px; }
+  pre code { color: #cfe8f5; }
+  p code, li code {
+    background: var(--panel-2); border: 1px solid var(--border);
+    padding: 1px 6px; border-radius: 6px; font-size: 13px; color: #cfe8f5;
+  }
+  .muted { color: var(--muted); }
+
+  .callout {
+    border-left: 3px solid var(--accent); background: rgba(34,211,238,0.06);
+    border-radius: 0 10px 10px 0; padding: 12px 16px; margin: 16px 0 0; color: var(--text); font-size: 14.5px;
+  }
+
+  footer.site {
+    border-top: 1px solid var(--border); margin-top: 30px; padding: 26px 0 46px;
+    color: var(--muted); font-size: 13.5px; display: flex; justify-content: space-between; gap: 14px; flex-wrap: wrap;
+  }
+
+  @media (max-width: 720px) {
+    .grid3 { grid-template-columns: 1fr; }
+    header.site { flex-wrap: wrap; gap: 10px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="site">
+    <img class="logo" src="assets/TELUS_Digital_logo.png" alt="TELUS Digital" />
+    <nav class="nav">
+      <a href="https://github.com/xavient/cisco-advisory-impact-analyzer">GitHub</a>
+      <a href="#install">Install</a>
+    </nav>
+  </header>
+
+  <section class="hero">
+    <span class="eyebrow"><span class="dot"></span> TELUS Digital · Security Tooling</span>
+    <h1>Cisco Advisory Impact Analyzer</h1>
+    <p class="tagline">Know which of your firewalls a Cisco advisory actually affects.</p>
+    <p class="lede">
+      Paste a Cisco <b>Event Response (ERP)</b> link. The tool pulls every referenced
+      advisory, reads its official product data, and uses AI to tell you exactly which
+      ASA/FTD devices in <b>your</b> inventory are impacted — as a ready-to-share Excel report.
+    </p>
+    <div class="cta">
+      <a class="btn btn-primary" href="https://github.com/xavient/cisco-advisory-impact-analyzer/releases/latest">
+        ↓ Download &nbsp;<small>latest release (.zip)</small>
+      </a>
+      <a class="btn btn-ghost" href="https://github.com/xavient/cisco-advisory-impact-analyzer">View on GitHub</a>
+    </div>
+    <p class="subnote">Runs on macOS, Windows &amp; Linux · Python-based · your data never leaves your machine</p>
+  </section>
+
+  <section class="block">
+    <div class="grid3">
+      <div class="card">
+        <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+        <h3>Discovers advisories</h3>
+        <p>Reads an ERP page and finds every Cisco security advisory it references — no manual list-building.</p>
+      </div>
+      <div class="card">
+        <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3 4 6v6c0 4.4 3.4 8.5 8 9 4.6-.5 8-4.6 8-9V6l-8-3Z"/><path d="m9 12 2 2 4-4"/></svg>
+        <h3>AI impact analysis</h3>
+        <p>Matches affected products and software releases against your inventory, flagging config-dependent cases as <em>Indeterminate</em>.</p>
+      </div>
+      <div class="card">
+        <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 2h9l5 5v15H6z"/><path d="M14 2v6h6"/><path d="M9 14h6M9 17h6"/></svg>
+        <h3>Excel report</h3>
+        <p>Outputs a timestamped spreadsheet listing impacted firewalls per advisory — ready to hand off.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="block" id="prereqs">
+    <h2><span class="num">01</span>Before you start</h2>
+    <div class="panel">
+      <ul class="check">
+        <li><b>Python 3.9 or newer</b> — <span>a one-time install (links in the repo README).</span></li>
+        <li><b>A FueliX API key</b> — <span>each person uses their own (see “Get your key” below).</span></li>
+        <li><b>Your firewall inventory</b> — <span>an Excel file named <code>inventory.xlsx</code> (sheet <code>FW_List</code>).</span></li>
+        <li><b>Internet access</b> — <span>to <code>sec.cloudapps.cisco.com</code> and <code>api.fuelix.ai</code>.</span></li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="block" id="install">
+    <h2><span class="num">02</span>Install &amp; run</h2>
+    <div class="panel">
+      <ol class="steps">
+        <li>
+          <b>Download &amp; unzip.</b> Grab the
+          <a href="https://github.com/xavient/cisco-advisory-impact-analyzer/releases/latest">latest release</a>
+          and unzip it into a folder.
+        </li>
+        <li>
+          <b>Add your inventory.</b> Copy your <code>inventory.xlsx</code> into that same folder,
+          next to <code>install.py</code>.
+        </li>
+        <li>
+          <b>Open a terminal in the folder.</b>
+          <div class="os">Windows: Shift + right-click in the folder → “Open PowerShell window here”. &nbsp;·&nbsp;
+          macOS: open Terminal, type <code>cd&nbsp;</code> then drag the folder in. &nbsp;·&nbsp;
+          Linux: right-click → “Open Terminal Here”.</div>
+        </li>
+        <li>
+          <b>Run the installer</b> (sets up everything and asks for your API key):
+          <pre><code>python3 install.py     # macOS / Linux
+python install.py      # Windows  (or:  py install.py)</code></pre>
+        </li>
+        <li>
+          <b>Run it</b> — then paste your Cisco ERP link when prompted:
+          <pre><code>python3 run.py         # macOS / Linux
+python run.py          # Windows  (or:  py run.py)</code></pre>
+          The report <code>analysis_output_&lt;date&gt;.xlsx</code> appears in the same folder.
+        </li>
+      </ol>
+      <div class="callout">
+        The full walkthrough, output guide, and troubleshooting live in the
+        <a href="https://github.com/xavient/cisco-advisory-impact-analyzer#readme">repository README</a>.
+      </div>
+    </div>
+  </section>
+
+  <section class="block" id="key">
+    <h2><span class="num">03</span>Get your FueliX API key</h2>
+    <div class="panel">
+      <ol class="steps">
+        <li>Go to <a href="https://dev.fuelix.ai">dev.fuelix.ai</a> and log in.</li>
+        <li>Open your <b>Default</b> project → the <b>“…”</b> menu → <b>View</b>.</li>
+        <li>Under <b>API keys</b>, copy the key that’s already listed.</li>
+        <li>Paste it when the installer asks for <code>FUELIX_API_KEY</code>.</li>
+      </ol>
+      <p class="muted" style="margin:14px 0 0">Keep your key private — it’s stored locally in a <code>.env</code> file and is never shared or committed.</p>
+    </div>
+  </section>
+
+  <footer class="site">
+    <span>Cisco Advisory Impact Analyzer · TELUS Digital</span>
+    <span><a href="https://github.com/xavient/cisco-advisory-impact-analyzer">github.com/xavient/cisco-advisory-impact-analyzer</a></span>
+  </footer>
+
+</div>
+</body>
+</html>
