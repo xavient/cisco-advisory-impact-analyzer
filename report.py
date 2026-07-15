@@ -16,13 +16,23 @@ from openpyxl.styles import Alignment, Font, PatternFill
 HEADERS = ["Vendor Advisory#", "Effected Product Description", "Expected Assessment"]
 
 
-def write_report(results, output_dir="."):
+def write_report(results, output_dir="output"):
     """Write results (list of (advisory_id, description, assessment)) to a new xlsx.
+
+    The output directory is created if missing. The file name carries a timestamp so
+    reports accumulate; if a name already exists (e.g. two runs within the same second)
+    a numeric suffix is appended so an existing report is never overwritten.
 
     Returns the path written.
     """
+    out_dir = Path(output_dir)
+    out_dir.mkdir(parents=True, exist_ok=True)
     ts = _dt.datetime.now().strftime("%Y%m%d_%H%M%S")
-    out_path = Path(output_dir) / f"analysis_output_{ts}.xlsx"
+    out_path = out_dir / f"analysis_output_{ts}.xlsx"
+    n = 1
+    while out_path.exists():
+        out_path = out_dir / f"analysis_output_{ts}_{n}.xlsx"
+        n += 1
 
     wb = openpyxl.Workbook()
     ws = wb.active

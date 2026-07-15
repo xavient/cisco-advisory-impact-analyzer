@@ -8,6 +8,14 @@
 
 **Input**: User description: "we want to change the inventory and outputs folders. The inventory file is expected to exist in `inventory` folder, and the output excel files are to be saved in `output` folder. so when we're running the script, it should check that those two folders exist and go from there. Add a check, there must be only 1 inventory file to avoid collision, so in the `inventory` folder, if the script finds more than 1 file, it should throw an error and ask the user to clean it up. the output folder can have many because each file will have a unique timestamp"
 
+## Clarifications
+
+### Session 2026-07-14
+
+- Q: What counts as an "inventory file" for the "exactly one" rule? → A: Count only Excel `.xlsx` files; files of any other extension in the `inventory` folder are ignored for the count.
+- Q: What should happen when a required folder (`inventory` or `output`) is missing? → A: The tool creates both folders automatically at startup if they are missing; a missing folder is never an error. After the `inventory` folder exists, if it contains no inventory `.xlsx` file, the tool then errors.
+- Q: Where are the `inventory` and `output` folders located? → A: Beside the program — resolved relative to the tool's own program directory (where `run.py`/`analyzer.py` live), not the operator's shell working directory.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Dedicated inventory folder with a single source file (Priority: P1)
@@ -89,12 +97,14 @@ report files appear in the `output` folder and that neither overwrites the other
 ### Edge Cases
 
 - **Missing folders**: If the `inventory` folder and/or the `output` folder does not
-  exist when the analyzer runs, the tool stops with a clear message naming the missing
-  folder and telling the operator what is expected there, rather than proceeding.
+  exist when the analyzer runs, the tool creates the missing folder(s) during startup and
+  continues; a freshly created (therefore empty) `inventory` folder then falls through to
+  the "no inventory file found" error.
 - **Empty inventory folder**: Treated as "no inventory file found" (see User Story 2).
-- **Incidental non-inventory files**: Operating-system metadata files (e.g. `.DS_Store`)
-  and spreadsheet lock/temp files (e.g. `~$...`) that may appear in the `inventory`
-  folder should not be counted as inventory files for the "exactly one" check.
+- **Incidental non-inventory files**: Only `.xlsx` files are counted; anything else in the
+  `inventory` folder — operating-system metadata files (e.g. `.DS_Store`), spreadsheet
+  lock/temp files (e.g. `~$...`), and files with other extensions — is ignored for the
+  "exactly one" check.
 - **Unreadable inventory file**: If the single inventory file exists but cannot be
   opened or is not a valid inventory spreadsheet, the tool reports the problem clearly
   instead of failing obscurely.
@@ -108,7 +118,9 @@ report files appear in the `output` folder and that neither overwrites the other
 
 - **FR-001**: The tool MUST read the firewall inventory from a dedicated `inventory`
   folder rather than from a fixed file beside the program.
-- **FR-002**: The tool MUST require exactly one inventory file in the `inventory` folder.
+- **FR-002**: The tool MUST require exactly one inventory file (an Excel `.xlsx` file) in
+  the `inventory` folder. Files of any other extension in the folder are not counted as
+  inventory files.
 - **FR-003**: When the `inventory` folder contains more than one inventory file, the tool
   MUST refuse to run and present an error that (a) states more than one inventory file
   was found and (b) instructs the operator to remove the extras so only one remains.
@@ -118,15 +130,20 @@ report files appear in the `output` folder and that neither overwrites the other
   folder.
 - **FR-006**: The tool MUST allow the `output` folder to contain many reports, giving each
   report a unique timestamped name so that new reports never overwrite existing ones.
-- **FR-007**: On startup, before performing analysis, the tool MUST verify that both the
-  `inventory` and `output` folders exist and MUST stop with a clear, actionable message
-  identifying any missing folder.
-- **FR-008**: Error messages for missing folders, missing inventory, and multiple
-  inventory files MUST be understandable by a non-developer operator and tell them what
-  to do next.
+- **FR-007**: On startup, before performing analysis, the tool MUST create the `inventory`
+  and `output` folders if they do not already exist. A missing folder MUST NOT be treated
+  as an error. After ensuring the `inventory` folder exists, the tool applies the
+  inventory-file checks (FR-002/FR-003/FR-004): if the now-present `inventory` folder
+  contains no inventory `.xlsx` file, the tool MUST stop with a clear, actionable message.
+- **FR-008**: Error messages for a missing inventory file and for multiple inventory
+  files MUST be understandable by a non-developer operator and tell them what to do next.
 - **FR-009**: When counting inventory files for the "exactly one" rule, the tool MUST
-  ignore incidental non-inventory files such as hidden OS metadata files and spreadsheet
-  lock/temporary files.
+  count only Excel `.xlsx` files and MUST ignore all other files, including incidental
+  non-inventory files such as hidden OS metadata files, spreadsheet lock/temporary files,
+  and files with any non-`.xlsx` extension.
+- **FR-010**: The tool MUST resolve the `inventory` and `output` folders relative to its
+  own program directory (where the program files live), independent of the operator's
+  current shell working directory.
 
 ### Key Entities *(include if feature involves data)*
 
@@ -147,25 +164,27 @@ report files appear in the `output` folder and that neither overwrites the other
 - **SC-002**: In 100% of runs where the `inventory` folder contains more than one file,
   the tool stops before analysis and shows a message telling the operator to leave only
   one file.
-- **SC-003**: In 100% of runs where a required folder is missing, the tool stops before
-  analysis and names the missing folder.
+- **SC-003**: In 100% of runs where a required folder is missing, the tool creates it at
+  startup and continues (a newly created, empty `inventory` folder then yields the "no
+  inventory file found" error).
 - **SC-004**: After N successful runs, the `output` folder contains N distinct report
   files, with zero reports overwritten.
-- **SC-005**: A non-developer operator can resolve a "multiple inventory files" or
-  "missing folder" error using only the on-screen message, without consulting external
-  documentation.
+- **SC-005**: A non-developer operator can resolve a "multiple inventory files" or "no
+  inventory file found" error using only the on-screen message, without consulting
+  external documentation.
 
 ## Assumptions
 
-- Missing required folders are treated as an error with guidance (consistent with the
-  tool's existing "refuse to run when prerequisites are missing" behavior), rather than
-  being silently created by the tool.
-- "Only 1 inventory file" is measured against real inventory spreadsheets; incidental
-  files created by the operating system or by a spreadsheet application (hidden metadata,
-  temporary lock files) are not counted.
-- The `inventory` and `output` folders are located relative to the tool's working
-  directory (the folder the operator runs the tool from / where the tool lives), matching
-  how the inventory file was previously placed beside the program.
+- Missing `inventory`/`output` folders are created automatically by the tool at startup
+  and are never an error; the refuse-to-run behavior applies to the inventory *file*
+  (none present, or more than one), not to the folders themselves.
+- "Only 1 inventory file" is measured against Excel `.xlsx` files only; files of any
+  other extension — including incidental files created by the operating system or a
+  spreadsheet application (hidden metadata, temporary lock files) — are not counted.
+- The `inventory` and `output` folders are located beside the program, resolved relative
+  to the tool's own program directory (where `run.py`/`analyzer.py` live), not the
+  operator's shell working directory — matching how the inventory file was previously
+  placed beside the program.
 - Report files continue to use the existing timestamped naming scheme that guarantees
   uniqueness across runs.
 - This change replaces the previous behavior of reading the inventory from a fixed file

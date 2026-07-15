@@ -9,7 +9,7 @@ Works on macOS, Linux, and Windows. Assumes Python 3.9+ is already installed
     2. create a local virtual environment (.venv),
     3. install the required packages into it,
     4. help you set up your FueliX API key in .env,
-    5. check that your inventory spreadsheet is present,
+    5. create the inventory/ and output/ folders and check your inventory file,
     6. run a quick smoke test, and
     7. optionally launch the analyzer.
 
@@ -36,7 +36,9 @@ ROOT = Path(__file__).resolve().parent
 VENV_DIR = ROOT / ".venv"
 REQUIREMENTS = ROOT / "requirements.txt"
 ENV_FILE = ROOT / ".env"
-INVENTORY = ROOT / "inventory.xlsx"
+INVENTORY_DIR = ROOT / "inventory"
+OUTPUT_DIR = ROOT / "output"
+INVENTORY_NAME = "inventory.xlsx"
 MIN_PYTHON = (3, 9)
 DEFAULT_MODEL = "claude-sonnet-5"
 DEFAULT_BASE_URL = "https://api.fuelix.ai/v1"
@@ -160,29 +162,57 @@ def setup_env(cli_key=None, cli_model=None, assume_yes=False):
                 "before running the analyzer.")
 
 
+def ensure_folders():
+    """Make sure the inventory/ and output/ folders exist, telling the user whether
+    each was already there or freshly created."""
+    for d in (INVENTORY_DIR, OUTPUT_DIR):
+        if d.is_dir():
+            ui.ok(f"Folder '{d.name}' is ready.")
+        else:
+            d.mkdir(parents=True, exist_ok=True)
+            ui.ok(f"Created the '{d.name}' folder.")
+
+
+def _inventory_files():
+    """.xlsx files in the inventory folder, ignoring spreadsheet lock/temp files."""
+    return sorted(p for p in INVENTORY_DIR.glob("*.xlsx") if not p.name.startswith("~$"))
+
+
 def check_inventory(cli_inventory=None, assume_yes=False):
-    if INVENTORY.exists():
-        ui.ok(f"Found inventory: {ui.bold(INVENTORY.name)}")
+    ensure_folders()
+
+    existing = _inventory_files()
+    if existing:
+        ui.ok(f"Found inventory in '{INVENTORY_DIR.name}': {ui.bold(existing[0].name)}")
+        if len(existing) > 1:
+            ui.warn(f"More than one .xlsx is in '{INVENTORY_DIR.name}'. Keep exactly "
+                    "one before running the analyzer, or it will stop and ask you to "
+                    "clean up.")
         return
+
+    target = INVENTORY_DIR / INVENTORY_NAME
     if cli_inventory:
-        src = Path(cli_inventory)
+        src = Path(cli_inventory).expanduser()
     elif assume_yes:
-        ui.warn(f"No {INVENTORY.name} found - add it before running the analyzer.")
+        ui.warn(f"No inventory .xlsx in the '{INVENTORY_DIR.name}' folder. For the "
+                f"analyzer to work, drop your inventory there as '{INVENTORY_NAME}'.")
         return
     else:
-        ui.system(f"No '{INVENTORY.name}' found in this folder.")
-        path = ui.ask("Path to your inventory .xlsx to copy here (Enter to skip)")
+        ui.system(f"No '{INVENTORY_NAME}' found in the '{INVENTORY_DIR.name}' folder.")
+        path = ui.ask(f"Path to your inventory .xlsx to copy into '{INVENTORY_DIR.name}' "
+                      "(Enter to skip)")
         if not path:
-            ui.warn(f"Skipped. Place your inventory here as '{INVENTORY.name}' "
-                    "before running the analyzer.")
+            ui.warn(f"Skipped. Place your inventory in the '{INVENTORY_DIR.name}' folder "
+                    f"as '{INVENTORY_NAME}' before running the analyzer.")
             return
         src = Path(path).expanduser()
 
     if src.exists() and src.suffix.lower() == ".xlsx":
-        shutil.copy2(src, INVENTORY)
-        ui.ok(f"Copied inventory to {ui.bold(INVENTORY.name)}")
+        shutil.copy2(src, target)
+        ui.ok(f"Copied inventory to {ui.bold(INVENTORY_DIR.name + '/' + INVENTORY_NAME)}")
     else:
-        ui.warn(f"'{src}' is not a valid .xlsx file. Add '{INVENTORY.name}' manually.")
+        ui.warn(f"'{src}' is not a valid .xlsx file. Add '{INVENTORY_NAME}' to the "
+                f"'{INVENTORY_DIR.name}' folder manually.")
 
 
 def smoke_test():
@@ -237,7 +267,7 @@ def main():
     ui.step(4, total, "Configuring FueliX credentials (.env)")
     setup_env(cli_key=args.api_key, cli_model=args.model, assume_yes=args.yes)
 
-    ui.step(5, total, "Checking the firewall inventory")
+    ui.step(5, total, "Setting up folders and the firewall inventory")
     check_inventory(cli_inventory=args.inventory, assume_yes=args.yes)
 
     ui.step(6, total, "Verifying the installation")
