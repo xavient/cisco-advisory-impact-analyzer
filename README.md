@@ -21,7 +21,7 @@ Please make sure you have all four of these. The tool will not run without them.
 | - | ----------- | ------------- |
 | 1 | **Python 3.9 or newer** | Install once from the links below. |
 | 2 | **A FueliX API key** | Get yours from <https://dev.fuelix.ai> — each person needs their own (steps below). |
-| 3 | **Your firewall inventory** as an Excel file named **`inventory.xlsx`** | You build this yourself (format below). |
+| 3 | **Your firewall inventory** as a single Excel `.xlsx` file placed in the **`inventory`** folder | You build this yourself (format below). |
 | 4 | **Internet access** to `sec.cloudapps.cisco.com` and `api.fuelix.ai` | Usually already available; corporate proxies can block these. |
 
 > The API key is stored in a small file called **`.env`** in the tool's folder. **The
@@ -37,8 +37,8 @@ Please make sure you have all four of these. The tool will not run without them.
 
 ### Inventory format
 
-`inventory.xlsx` must have a sheet named **`FW_List`** with these columns (header names
-can vary slightly — matching is flexible):
+Your inventory `.xlsx` must have a sheet named **`FW_List`** with these columns (header
+names can vary slightly — matching is flexible):
 
 | FirewallName | Model | Firewalltype | IOS version | Priority |
 | ------------ | ----- | ------------ | ----------- | -------- |
@@ -55,8 +55,10 @@ installer first — it will tell you where to put the file.
 **1. Get the tool.** On the GitHub page, click the green **`Code`** button → **Download
 ZIP**. Unzip it. You'll get a folder (e.g. `cisco-advisory-impact-analyzer`).
 
-**2. Put your inventory in that folder.** Copy your `inventory.xlsx` into the unzipped
-folder, next to the files like `install.py` and `run.py`.
+**2. Put your inventory in the `inventory` folder.** Copy your inventory `.xlsx` into the
+**`inventory`** subfolder of the unzipped folder (the tool creates this folder for you on
+first run if it isn't there). Keep **exactly one** `.xlsx` file in it — if the tool finds
+more than one, it stops and asks you to clean it up.
 
 **3. Open a terminal *in that folder*.**
 - **Windows:** open the folder in File Explorer, then Shift + right-click an empty area →
@@ -103,7 +105,8 @@ https://sec.cloudapps.cisco.com/security/center/viewErp.x?alertId=ERP-75736
 (A single advisory link — `.../CiscoSecurityAdvisory/cisco-sa-...` — also works.)
 
 The tool finds all advisories, analyzes each one against your inventory, and writes a file
-named **`analysis_output_<date>_<time>.xlsx`** in the same folder.
+named **`analysis_output_<date>_<time>.xlsx`** into the **`output`** folder (created
+automatically). Each run adds a new timestamped file, so previous reports are kept.
 
 Press **Ctrl+C** at any time to cancel cleanly.
 
@@ -169,7 +172,10 @@ If you'd rather set it up manually instead of using the installer, copy the prov
   `python`, or reinstall Python with **“Add python.exe to PATH”** ticked.
 - **`Missing FUELIX_API_KEY`** — your `.env` has no key. Re-run `python install.py`, or
   open `.env` and set `FUELIX_API_KEY=...`.
-- **`No inventory spreadsheet found`** — put your `inventory.xlsx` in this folder.
+- **`No inventory file found`** — put exactly one inventory `.xlsx` in the `inventory`
+  folder.
+- **`More than one inventory file found`** — the `inventory` folder has more than one
+  `.xlsx`; remove the extras so only one remains.
 - **Dependency install failed / `pip` errors** — usually a network or corporate-proxy
   block on PyPI. Confirm you have internet access and try again; ask IT if PyPI is blocked.
 - **Everything comes back `Indeterminate`** — either the advisories are genuinely
@@ -187,9 +193,9 @@ Extra flags can be passed through `run.py`, e.g. `python run.py --dry-run`:
 | Flag | Purpose |
 | ---- | ------- |
 | `--url <URL>` | supply the ERP/advisory URL instead of being prompted |
-| `--inventory <PATH>` | use an inventory file elsewhere |
+| `--inventory <PATH>` | use a specific inventory file, bypassing the `inventory` folder |
 | `--sheet <NAME>` | inventory sheet name (default `FW_List`) |
-| `--output-dir <DIR>` | where to write the report (default: this folder) |
+| `--output-dir <DIR>` | where to write the report (default: the `output` folder) |
 | `--dry-run` | run everything **without** calling the AI (no API key needed) — handy to test setup |
 | `--no-keep-temp` | delete the downloaded CSAF files when finished |
 
@@ -217,8 +223,8 @@ To keep the AI prompt small and reliable, the inventory rows are collapsed into 
 expands them back into firewall names.
 
 **Handing it to teammates:** just point them at the GitHub repo — they follow the Install
-section above. Secrets and per-user data (`.env`, `.venv/`, `inventory.xlsx`,
-`analysis_output_*.xlsx`) are excluded via `.gitignore`, so they never ship in the repo.
+section above. Secrets and per-user data (`.env`, `.venv/`, the `inventory/` and `output/`
+folders) are excluded via `.gitignore`, so they never ship in the repo.
 Each teammate supplies their own API key and inventory.
 
 </details>

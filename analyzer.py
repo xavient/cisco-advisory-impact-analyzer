@@ -9,7 +9,9 @@ which firewalls in your inventory are impacted. Writes a timestamped Excel repor
 
 Typical use (interactive):
     python analyzer.py
-    -> place inventory.xlsx and .env next to this script first.
+    -> place your single inventory .xlsx in the 'inventory' folder next to this
+       script, and .env next to this script first. Reports are written to the
+       'output' folder. Both folders are created automatically on first run.
 
 Automation / testing:
     python analyzer.py --url <ERP_OR_ADVISORY_URL> [--inventory PATH]
@@ -33,6 +35,8 @@ import ui
 from report import write_report
 
 ROOT = Path(__file__).resolve().parent
+INVENTORY_DIR = ROOT / "inventory"
+OUTPUT_DIR = ROOT / "output"
 CISCO_HOST = "sec.cloudapps.cisco.com"
 
 
@@ -69,25 +73,47 @@ def load_env(root):
 
 
 # --------------------------------------------------------------------------- #
+# Folders
+# --------------------------------------------------------------------------- #
+def ensure_dirs(*dirs):
+    """Create each folder (and parents) if missing. A missing folder is never an
+    error; an already-existing folder is left untouched."""
+    for d in dirs:
+        Path(d).mkdir(parents=True, exist_ok=True)
+
+
+# --------------------------------------------------------------------------- #
 # Inventory discovery
 # --------------------------------------------------------------------------- #
-def find_inventory(root, explicit=None):
+def find_inventory(inventory_dir, explicit=None):
+    """Return the single inventory .xlsx to analyze.
+
+    With --inventory (explicit) the given file is used directly. Otherwise the
+    'inventory' folder must contain exactly one .xlsx file: 0 or >1 is a fatal,
+    actionable error. Only .xlsx files are counted; lock/temp files (~$*.xlsx) and
+    anything with another extension are ignored.
+    """
     if explicit:
         p = Path(explicit)
         if not p.exists():
             die(f"Inventory file not found: {p}")
         return p
-    preferred = root / "inventory.xlsx"
-    if preferred.exists():
-        return preferred
+
+    inventory_dir = Path(inventory_dir)
     candidates = sorted(
-        p for p in root.glob("*.xlsx")
-        if not p.name.startswith("analysis_output_") and not p.name.startswith("~$")
+        p for p in inventory_dir.glob("*.xlsx")
+        if not p.name.startswith("~$")
     )
-    if candidates:
+    if len(candidates) == 1:
         return candidates[0]
-    die(f"No inventory spreadsheet found in {root}.",
-        hint="Place your firewall inventory there as 'inventory.xlsx' (sheet 'FW_List').")
+    if not candidates:
+        die(f"No inventory file found in {inventory_dir}.",
+            hint="Place exactly one firewall inventory .xlsx file in that folder "
+                 "(sheet 'FW_List').")
+    names = ", ".join(p.name for p in candidates)
+    die(f"More than one inventory file found in {inventory_dir}: {names}.",
+        hint="Keep exactly one .xlsx inventory file in that folder and remove the "
+             "others, then run again.")
 
 
 # --------------------------------------------------------------------------- #
@@ -177,15 +203,21 @@ def _assessment_label(assessment):
 def main():
     ap = argparse.ArgumentParser(description="Cisco advisory impact analyzer (AI-driven)")
     ap.add_argument("--url", help="ERP page URL or single advisory URL (else prompted)")
-    ap.add_argument("--inventory", help="Path to inventory .xlsx (else auto-detected in root)")
+    ap.add_argument("--inventory",
+                    help="Path to inventory .xlsx (else the single .xlsx in the "
+                         "'inventory' folder)")
     ap.add_argument("--sheet", default="FW_List", help="Inventory sheet name")
-    ap.add_argument("--output-dir", default=str(ROOT), help="Where to write the report")
+    ap.add_argument("--output-dir", default=str(OUTPUT_DIR),
+                    help="Where to write the report (default: the 'output' folder)")
     ap.add_argument("--dry-run", action="store_true", help="Skip the AI call (pipeline test)")
     ap.add_argument("--keep-temp", dest="keep_temp", action="store_true", default=True)
     ap.add_argument("--no-keep-temp", dest="keep_temp", action="store_false")
     args = ap.parse_args()
 
     load_env(ROOT)
+
+    # 0. Ensure the inventory/output folders exist (created if missing; never an error).
+    ensure_dirs(INVENTORY_DIR, OUTPUT_DIR)
 
     # 1. API key check (skipped for dry-run so the pipeline can be tested offline).
     api_key = os.environ.get("FUELIX_API_KEY", "").strip()
@@ -197,7 +229,7 @@ def main():
     base_url = os.environ.get("FUELIX_BASE_URL", fuelix.DEFAULT_BASE_URL).strip()
 
     # 2. Inventory.
-    inv_path = find_inventory(ROOT, args.inventory)
+    inv_path = find_inventory(INVENTORY_DIR, args.inventory)
     inventory = inv.load_inventory(inv_path, args.sheet)
     if not inventory:
         die(f"Inventory {inv_path} has no firewall rows.")

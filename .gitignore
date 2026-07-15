@@ -12,6 +12,10 @@ inventory.xlsx
 analysis_output_*.xlsx
 ~$*.xlsx
 
+# Inventory / output folders (contents are local data, not source)
+/inventory/
+/output/
+
 # Temp CSAF downloads (created via tempfile)
 csaf_*/
 
