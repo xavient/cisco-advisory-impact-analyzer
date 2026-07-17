@@ -131,6 +131,37 @@ The spreadsheet has three columns:
 
 ---
 
+## Keeping it up to date
+
+New releases improve the advisory-matching logic, so it's worth staying current. Update the
+tool **in place** — your API key, inventory, reports, and environment are never touched:
+
+```bash
+python3 update.py          # macOS / Linux
+python update.py           # Windows
+```
+
+It checks the latest release on GitHub and, if a newer one exists, shows `current → new`,
+asks you to confirm, downloads and **verifies** the package, backs up the files it replaces,
+and applies the update (re-installing dependencies only if they changed). Your `.env`,
+`inventory/`, `output/`, and `.venv/` are left exactly as they were.
+
+Useful variations:
+
+| Command | What it does |
+| ------- | ------------ |
+| `python3 update.py` | Check, confirm, and update to the latest release. |
+| `python3 update.py --check` | Show your installed version vs the latest — change nothing. |
+| `python3 update.py --yes` | Update without the confirmation prompt (for scripts). |
+| `python3 update.py --rollback` | Undo the last update, restoring the previous version. |
+| `python3 run.py --version` | Print the version you currently have installed. |
+
+When you run the analyzer, it also does a quick, best-effort check and prints a one-line
+notice if a newer version is available. To turn that off, pass `--no-update-check` or set the
+environment variable `CAIA_NO_UPDATE_CHECK=1`.
+
+---
+
 ## The `.env` file and your API key
 
 Your FueliX API key lives in a small file called **`.env`** in the tool's folder. The

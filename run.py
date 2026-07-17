@@ -21,6 +21,7 @@ import sys
 from pathlib import Path
 
 import ui
+import updater
 
 ROOT = Path(__file__).resolve().parent
 ANALYZER = ROOT / "analyzer.py"
@@ -28,13 +29,31 @@ VENV_PY = ROOT / ".venv" / ("Scripts/python.exe" if os.name == "nt" else "bin/py
 
 
 def main():
+    args = sys.argv[1:]
+
+    # `run.py --version` reports the installed version and exits. It reads the VERSION
+    # file directly, so it works even before the virtual environment is set up.
+    if "--version" in args:
+        print(updater.read_installed_version() or "unknown")
+        return
+
     if not VENV_PY.exists():
         ui.fail("The virtual environment isn't set up yet.")
         ui.plain("Run the installer first:")
         ui.plain("    python install.py" if os.name == "nt" else "    python3 install.py")
         sys.exit(1)
 
-    args = sys.argv[1:]
+    # Best-effort, stateless update nudge (never blocks, noticeably delays, or fails the
+    # run). Disable with --no-update-check or the CAIA_NO_UPDATE_CHECK environment variable.
+    check_updates = ("--no-update-check" not in args
+                     and not os.environ.get("CAIA_NO_UPDATE_CHECK"))
+    args = [a for a in args if a != "--no-update-check"]
+    if check_updates:
+        newer = updater.passive_check(timeout=2)
+        if newer:
+            have = updater.read_installed_version() or "unknown"
+            ui.info(f"A new version {ui.bold(newer)} is available (you have {have}). "
+                    "Update with: " + ui.bold("python3 update.py"))
 
     # Are we already running *inside* the venv? Check sys.prefix, not the executable
     # path: a venv's bin/python is a symlink to the base interpreter, so comparing

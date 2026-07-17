@@ -1,0 +1,57 @@
+name: Release
+
+# Build and publish the release package whenever a version tag is pushed. This guarantees
+# the shipped package always carries a VERSION equal to the tag plus a matching SHA-256
+# checksum, so the self-updater's version and integrity checks never drift (FR-020/FR-021).
+
+on:
+  push:
+    tags:
+      - '[0-9]+.[0-9]+.[0-9]+'
+
+permissions:
+  contents: write
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build package (stamp VERSION, generate MANIFEST, zip, checksum)
+        run: |
+          set -euo pipefail
+          TAG="${GITHUB_REF_NAME}"
+          PKG="cisco-advisory-impact-analyzer"
+
+          # Stamp the single source of truth to equal the tag (FR-020).
+          printf '%s\n' "$TAG" > VERSION
+
+          # Assemble a clean, flat package of runtime files only (research D11/D12) —
+          # no user data (.env, inventory/, output/, .venv), no dev-only artifacts.
+          rm -rf staging dist
+          mkdir -p "staging/docs" dist
+          cp analyzer.py cisco.py fuelix.py inventory.py report.py ui.py \
+             install.py run.py update.py updater.py \
+             requirements.txt README.md .env.example VERSION "staging/"
+          cp docs/index.html "staging/docs/"
+
+          # MANIFEST lists every packaged path (used by the updater to remove files that
+          # are dropped between versions). Generated from the staged contents.
+          ( cd staging && find . -type f | sed 's|^\./||' | sort > MANIFEST )
+
+          # Flat zip: files live at the archive root (no top-level folder).
+          ( cd staging && zip -r -X "../dist/${PKG}.zip" . )
+
+          # SHA-256 the updater verifies before applying (FR-006).
+          ( cd dist && sha256sum "${PKG}.zip" > "${PKG}.zip.sha256" )
+
+          echo "Built ${PKG}.zip for ${TAG}:"
+          ( cd dist && cat "${PKG}.zip.sha256" )
+
+      - name: Publish release assets
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/cisco-advisory-impact-analyzer.zip
+            dist/cisco-advisory-impact-analyzer.zip.sha256

@@ -1,16 +1,17 @@
 <!--
 Sync Impact Report
 ==================
-Version change: 1.1.0 → 1.2.0
-Rationale: Expanded the Documentation quality gate to require the README and the GitHub
-           Pages landing page (docs/index.html) to keep their installation instructions
-           consistent with each other and with the code. New material guidance → MINOR bump.
+Version change: 1.2.0 → 1.3.0
+Rationale: Added GitHub as an allowed external endpoint for the self-updater
+           (update.py / updater.py), recording the "reviewed change" mandated by the
+           Technology & Data Constraints section. New allowed endpoint / material
+           guidance → MINOR bump. The analyzer's own contacted endpoints are unchanged.
 
 Modified principles: (none)
 Added sections: (none)
 Modified sections:
-  - Development Workflow & Quality Gates (Documentation bullet expanded to cover
-    docs/index.html and README consistency)
+  - Technology & Data Constraints (Networking bullet expanded to allow the updater's
+    GitHub release endpoints over HTTPS)
 Removed sections: (none)
 
 Templates requiring updates:
@@ -21,6 +22,8 @@ Templates requiring updates:
 
 Follow-up TODOs: (none)
 
+Previous version 1.2.0 (2026-07-16): expanded the Documentation quality gate to cover
+docs/index.html and README consistency.
 Previous version 1.1.0 (2026-07-14): added the "Branching Strategy" section.
 Previous version 1.0.0 (2026-07-14): initial ratification — Core Principles I–V,
 Technology & Data Constraints, Development Workflow & Quality Gates, Governance.
@@ -97,8 +100,12 @@ a personal credential; leaking either is a direct harm.
 - Inputs/outputs: inventory is read from `inventory.xlsx` (sheet `FW_List`); reports are
   written as timestamped `analysis_output_*.xlsx` files. Header matching MUST stay
   tolerant of minor naming variation.
-- Networking: only `sec.cloudapps.cisco.com` and `api.fuelix.ai` are contacted. Adding a
-  new external endpoint is a reviewed change.
+- Networking: the analyzer itself contacts only `sec.cloudapps.cisco.com` (Cisco
+  ERP/CSAF) and `api.fuelix.ai` (AI). The self-updater (`update.py` / `updater.py`)
+  additionally contacts GitHub — `api.github.com`, `github.com`, and
+  `objects.githubusercontent.com` — solely to discover the latest release and download the
+  checksum-verified release package over HTTPS; it sends no inventory or secrets. Adding
+  any further external endpoint remains a reviewed change.
 
 ## Branching Strategy
 
@@ -149,4 +156,4 @@ Compliance is verified at review time. Dependent Spec Kit artifacts (plan, spec,
 tasks templates and their generated documents) MUST remain consistent with the principles
 above; the Constitution Check in the planning workflow enforces this on each feature.
 
-**Version**: 1.2.0 | **Ratified**: 2026-07-14 | **Last Amended**: 2026-07-16
+**Version**: 1.3.0 | **Ratified**: 2026-07-14 | **Last Amended**: 2026-07-17
