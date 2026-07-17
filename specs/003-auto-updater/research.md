@@ -234,9 +234,11 @@ scaffolding and bloats the package; complicates the manifest/overlay.
 **Decision**: `updater.py` defines constants `REPO = "xavient/cisco-advisory-impact-analyzer"`
 and derived GitHub URLs (overridable via an env var, e.g. `CAIA_UPDATE_REPO`, for testing
 against a fork). Contacted hosts: `api.github.com`, `github.com`,
-`objects.githubusercontent.com` (asset CDN redirect). This is logged as the constitution's
-**reviewed change** (new external endpoint); a follow-up should amend the constitution's
-allowed-endpoints list to include GitHub for the updater.
+`objects.githubusercontent.com` (asset CDN redirect). This is the constitution's
+**reviewed change** (new external endpoint); it is ratified **in this PR** by an early
+Foundational governance-gate task (tasks T005) that amends the constitution's
+allowed-endpoints list to include GitHub for the updater, before any endpoint-contacting
+code lands.
 
 **Rationale**: Centralizes the endpoint (like `cisco.BASE`), enables fork-testing without
 code edits, and makes the reviewed-change explicit for the PR.

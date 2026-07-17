@@ -104,9 +104,11 @@ Evaluated against Constitution **v1.2.0**:
   change."* This feature intentionally adds GitHub (`api.github.com`, `github.com`, and the
   asset-redirect host `objects.githubusercontent.com`) — the update source. Justification:
   it is the entire purpose of the feature, is HTTPS-only, sends no secrets or inventory, and
-  is the **same source** the landing page (`docs/index.html`) already queries. Recorded here
-  as the reviewed change; a follow-up constitution amendment should add GitHub to the
-  allowed-endpoints list (see research D13). Not a violation → no Complexity Tracking entry.
+  is the **same source** the landing page (`docs/index.html`) already queries. The reviewed
+  change is ratified **in this PR** by an early Foundational governance-gate task (tasks
+  **T005**) that amends the constitution's allowed-endpoints list **before** any
+  endpoint-contacting code lands (see research D13). Not a violation → no Complexity
+  Tracking entry.
 - **Branching Strategy** — **PASS**. Work is on `003-auto-updater`, to merge to `main` via PR.
 - **Development Workflow & Quality Gates** — **PASS**. New pure-logic tests added (semver,
   manifest diff, preserve-list). README **and** `docs/index.html` are updated in the same PR

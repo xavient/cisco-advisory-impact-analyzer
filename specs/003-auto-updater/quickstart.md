@@ -106,12 +106,15 @@ python3 update.py
 Disable networking (or set an unreachable `CAIA_UPDATE_REPO`):
 
 ```bash
-python3 update.py --check
-python3 update.py
+python3 update.py --check     # installed known, latest unknown
+python3 update.py             # cannot determine what to update to
 ```
 
-**Expect**: `latest unknown (could not reach GitHub)` with an actionable hint; **exit 3**; no
-files changed; the installed version is still reported.
+**Expect (both)**: `latest unknown (could not reach GitHub)` with an actionable hint; **no
+files changed**; the installed version is still reported. Exit codes differ by command
+(per [contracts/cli.md](./contracts/cli.md)): `--check` exits **0** because it could still
+report the installed version, while the update path exits **3** because it cannot determine
+the target version.
 
 ## Scenario 9 — Passive nudge during a normal run (US4, FR-016)
 
