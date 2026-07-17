@@ -227,4 +227,16 @@ section above. Secrets and per-user data (`.env`, `.venv/`, the `inventory/` and
 folders) are excluded via `.gitignore`, so they never ship in the repo.
 Each teammate supplies their own API key and inventory.
 
+**Testing the installer in a clean environment:** to verify the released package installs
+end to end on a fresh machine, run the Docker-based test harness:
+
+```bash
+./tools/install-test/test-install.sh          # download latest release into a fresh container
+./tools/install-test/test-install.sh --local .  # or test the current working tree
+```
+
+It builds a disposable `python:3.9-slim` container from the released package (your local
+`.env`/`.venv`/inventory never enter it) and drops you into a shell where you run
+`python3 install.py`. See [`tools/install-test/README.md`](tools/install-test/README.md).
+
 </details>

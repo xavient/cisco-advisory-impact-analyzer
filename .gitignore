@@ -19,6 +19,9 @@ analysis_output_*.xlsx
 # Temp CSAF downloads (created via tempfile)
 csaf_*/
 
+# Install test harness: local share/staging artifacts (tools/install-test/test-install.sh)
+tools/install-test/share/
+
 # macOS
 .DS_Store
 

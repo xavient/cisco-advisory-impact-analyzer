@@ -8,6 +8,14 @@
 
 **Input**: User description: "build a test script to test the whole installation. End users download the package from https://github.com/xavient/cisco-advisory-impact-analyzer/releases/latest/download/cisco-advisory-impact-analyzer.zip. I want to have a script that I can run with which we will build a fresh new envionment on docker that I can test the installation on. This can be a `.sh` file. that I run, build the container, and login to it with the files copied, so from there I will just do `python3 install.py` and test it out end to end."
 
+## Clarifications
+
+### Session 2026-07-16
+
+- Q: Which Python + base OS should the fresh environment provide? → A: `python:3.9-slim` — pin the minimum supported Python (3.9) on a Debian-based image with pip/venv ready, to catch 3.9-specific compatibility regressions that a newer Python would hide.
+- Q: How does the maintainer get their own inventory file in for a full analyzer run without polluting the clean baseline? → A: Bind-mount an empty host folder as a drop-zone (and use it to capture `output/`); it is empty at launch so the clean-baseline guarantee holds, and the maintainer copies their `.xlsx` in after landing in the shell.
+- Q: What controls whether the throwaway environment is kept or removed after a test (e.g. to inspect a failed install)? → A: Default to remove on exit (including interruption); provide an opt-in `--keep` flag set at launch to preserve the environment for inspection.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Fresh environment with an interactive shell for the installer (Priority: P1)
@@ -120,8 +128,9 @@ on the host after exiting.
   masked.
 - **Maintainer wants a full analyzer run, not just installation**: After installation the
   maintainer needs their own API key (entered at the installer prompt) and an inventory
-  file inside the environment to exercise the analyzer end to end; the environment must not
-  block bringing such a file in.
+  file inside the environment to exercise the analyzer end to end; they supply the file by
+  dropping it into the empty host folder bind-mounted into the environment (FR-011), and
+  generated reports appear back in that folder on the host.
 - **Maintainer exits the shell abnormally** (Ctrl+C, closing the terminal): The throwaway
   environment should still be cleaned up rather than lingering.
 
@@ -134,9 +143,11 @@ on the host after exiting.
 - **FR-002**: The script MUST prepare a fresh, isolated, throwaway environment for each run
   that is independent of the maintainer's host machine and of any previous run.
 - **FR-003**: The prepared environment MUST start from a clean operating system baseline
-  that provides a Python version supported by the tool (3.9 or newer) and MUST NOT contain
-  a pre-existing virtual environment, `.env` file, installed project dependencies, or
-  inventory file.
+  that provides the **minimum supported Python (3.9)** on a Debian-based image (equivalent
+  to `python:3.9-slim`, with `pip` and `venv` available) and MUST NOT contain a pre-existing
+  virtual environment, `.env` file, installed project dependencies, or inventory file.
+  Pinning the minimum supported version is deliberate — it surfaces 3.9-specific
+  compatibility regressions that a newer Python would hide.
 - **FR-004**: By default the package under test MUST be the published release archive that
   end users download (the "latest release" package), obtained fresh for each run, so the
   test validates the shipped artifact rather than local development state.
@@ -153,10 +164,18 @@ on the host after exiting.
 - **FR-009**: The test MUST be repeatable: running the script again MUST reproduce the same
   clean baseline without residue from earlier runs affecting the outcome.
 - **FR-010**: On exit — including normal exit and interruption — the throwaway environment
-  MUST be removed so repeated runs do not accumulate leftover environments on the host.
+  MUST by default be removed so repeated runs do not accumulate leftover environments on
+  the host. The script MUST also offer an opt-in `--keep` flag, set at launch, that
+  preserves the environment after exit so the maintainer can inspect a failed or
+  interesting installation; when `--keep` is used the script MUST print how to re-enter and
+  later remove that environment.
 - **FR-011**: The environment MUST allow the maintainer to bring in their own inventory
   file so that, after installation, a full analyzer run can also be exercised end to end
-  (not only the installer).
+  (not only the installer). This MUST be done via a host folder bind-mounted into the
+  environment that is **empty at launch** (preserving the clean-baseline guarantee of
+  FR-003 and SC-002); the maintainer copies their `.xlsx` into it after reaching the shell.
+  The same mounted folder MUST also expose the generated `output/` reports back on the host
+  so results can be inspected after the environment is gone.
 - **FR-012**: The script SHOULD allow the maintainer to test a locally built package
   instead of the published release, to support validating a release candidate before it is
   published. *(Optional convenience; the default remains the published release per
@@ -189,8 +208,9 @@ on the host after exiting.
   package installs end to end.
 - **SC-004**: The full test can be repeated at least 10 consecutive times with each run
   beginning from an identical clean baseline and no failures caused by leftover state.
-- **SC-005**: After a maintainer exits the shell, zero test environments created by the
-  script remain on the host.
+- **SC-005**: After a maintainer exits the shell in the default mode (i.e. when they have
+  not opted to preserve the environment for inspection), zero test environments created by
+  the script remain on the host.
 - **SC-006**: When the container tooling is unavailable or the release cannot be
   downloaded, the maintainer receives a clear, actionable message identifying the cause in
   100% of such cases, and is never dropped into an empty or broken environment.
