@@ -8,6 +8,16 @@
 
 **Input**: BRD-001 (`brds/001-auto-updater.md`) — "Turn the auto-updater BRD into a spec: a one-command self-updater that fetches the latest published release, replaces the application files in place, preserves the user's configuration/data/environment, and makes the installed version knowable so the tool can check whether an update is warranted."
 
+## Clarifications
+
+### Session 2026-07-17
+
+- Q: How should the downloaded release package be verified before it replaces any files? → A: Publish a SHA-256 checksum with each release; the updater verifies the hash before applying (in addition to HTTPS and a well-formed-archive / expected-version check).
+- Q: Is automating the release packaging (version + checksum) in scope for this feature, or left to maintainers? → A: In scope — an automated release pipeline (triggered on a version tag) builds the package with version = tag, generates the SHA-256 checksum, and attaches both to the GitHub release.
+- Q: How are installed vs. latest versions compared to decide whether an update is available? → A: Semantic-version comparison — parse into numeric components and compare numerically (e.g. 1.10.0 > 1.9.0), yielding up-to-date, update-available (latest > installed), or ahead (installed > latest).
+- Q: How does a user revert an update? → A: A dedicated rollback command restores the most recent backup in one step; additionally the updater automatically self-reverts if an apply fails part-way.
+- Q: How often does the passive update-notice check run, and is it stateful? → A: At most once per analyzer run, stateless (no persisted last-check timestamp), short timeout, best-effort; disable via a flag or environment variable.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Update to the latest version, keeping my data (Priority: P1)
@@ -50,12 +60,13 @@ An analyst whose update went wrong — or who simply wants to go back — restor
 
 **Why this priority**: A safety net that makes updating low-risk. It is lower priority than performing the update itself but materially increases trust and adoption, especially for a security tool run on operators' machines.
 
-**Independent Test**: Apply an update, then invoke the revert path; confirm the prior application files are restored and `.env`, inventory, and reports remain intact. Separately, interrupt an update partway and confirm the install is either fully old or fully new — never mixed.
+**Independent Test**: Apply an update, then run the rollback command; confirm the prior application files are restored and `.env`, inventory, and reports remain intact. Separately, interrupt an update partway and confirm the install is either fully old or fully new — never mixed.
 
 **Acceptance Scenarios**:
 
-1. **Given** an update was applied and a backup exists, **When** the user reverts, **Then** the prior application files are restored and user data (`.env`, `inventory/`, `output/`) remains intact.
-2. **Given** an update is interrupted partway (e.g., cancelled, power loss), **When** the user inspects the install afterward, **Then** it is either fully on the old version or fully on the new version — never a broken mixture — and a recovery path is available.
+1. **Given** an update was applied and a backup exists, **When** the user runs the rollback command, **Then** the prior application files are restored from the most recent backup and user data (`.env`, `inventory/`, `output/`) remains intact.
+2. **Given** an apply errors part-way, **When** the failure occurs, **Then** the tool automatically restores the previous version, leaving the install fully on the old version.
+3. **Given** an update is hard-interrupted (e.g., power loss), **When** the user inspects the install afterward, **Then** it is either fully on the old version or fully on the new version — never a broken mixture — and the rollback command can restore the prior version.
 
 ---
 
@@ -96,32 +107,33 @@ An analyst using the tool normally is told, unobtrusively, when a newer release 
 - **FR-001**: The tool MUST provide a single command, runnable from the tool's folder, that updates the installation to the latest published release.
 - **FR-002**: The update MUST preserve the user's local data and configuration without modification or deletion — specifically the `.env` file, all contents of the `inventory/` folder, all contents of the `output/` folder, and the `.venv/` environment (the "preserve-list").
 - **FR-003**: The tool MUST record its installed version as a single authoritative, human-readable identifier that matches the release it was distributed as, and MUST be able to report it.
-- **FR-004**: The tool MUST determine the latest available version from the official release source before applying any update.
+- **FR-004**: The tool MUST determine the latest available version from the official release source and compare it against the installed version using semantic-version ordering (numeric, component-wise — e.g. `1.10.0` > `1.9.0`), before applying any update. The comparison MUST yield exactly one of: up to date (equal), update available (latest > installed), or ahead (installed > latest).
 - **FR-005**: When the installed version is already the latest, the tool MUST make no changes and MUST report that the installation is up to date.
-- **FR-006**: The tool MUST fully download and verify that the release package is complete and well-formed before modifying any installed file; if verification fails, it MUST make no changes and leave the existing install fully usable.
+- **FR-006**: The tool MUST fully download the release package over HTTPS and verify its integrity before modifying any installed file: it MUST confirm the download matches the SHA-256 checksum published with the release, and that the archive is well-formed and contains the expected version identifier. If any check fails, the tool MUST make no changes and leave the existing install fully usable.
 - **FR-007**: After a successful update, the tool MUST leave the installation ready to run, refreshing dependencies when the release's requirements have changed, so the analyzer runs without a separate manual install step.
 - **FR-008**: The tool MUST provide a check-only mode that reports the installed and latest versions and whether an update is available, without modifying any files.
 - **FR-009**: Before applying an update, the tool MUST show the current and target versions and require user confirmation, and MUST provide a non-interactive option to skip the prompt for scripted use.
 - **FR-010**: Users MUST be able to read the installed version through the tool's existing run entry point (e.g., a version flag), not only through the updater.
-- **FR-011**: Before replacing any files, the tool MUST create a recoverable backup of the files it will replace, so a failed or unwanted update can be reverted to the prior version with user data intact.
-- **FR-012**: The update MUST keep the installation in a consistent state at all times — fully on the previous version or fully on the new version, never a partial mixture — including when the process is interrupted or when its own files are among those being replaced.
+- **FR-011**: Before replacing any files, the tool MUST create a recoverable backup of the files it will replace, and MUST provide a dedicated command that restores the most recent backup — reverting to the prior version in one step — with user data intact.
+- **FR-012**: The update MUST keep the installation in a consistent state — fully on the previous version or fully on the new version, never a partial mixture. If applying the update errors part-way, the tool MUST automatically restore the previous version from the backup. If the process is hard-interrupted (e.g., power loss) or the updater's own files are among those being replaced, the install MUST remain recoverable so a subsequent run or the rollback command (FR-011) can restore a consistent state.
 - **FR-013**: The tool MUST behave consistently on Windows, macOS, and Linux, using the tool's existing entry points and self-contained environment, without requiring the user to manually activate that environment.
 - **FR-014**: The tool MUST retrieve updates only from the official repository's releases over a secure (HTTPS) channel, and MUST honor the environment's configured network proxy.
 - **FR-015**: The tool MUST degrade gracefully when the release source is unreachable or rate-limited: it MUST report the condition with an actionable message and MUST NOT leave the install in a broken state.
-- **FR-016**: During a normal analyzer run, the tool SHOULD perform a best-effort, non-blocking check for a newer release and, if one exists, display a brief notice naming the new version and how to update; this check MUST NOT block, delay, or fail the run when the network is unavailable, and MUST be possible to disable.
+- **FR-016**: During a normal analyzer run, the tool SHOULD perform a best-effort, non-blocking check for a newer release at most once per run (stateless — no persisted last-check timestamp), using a short timeout, and, if a newer release exists, display a brief notice naming the new version and how to update. This check MUST NOT block, delay, or fail the run when the network is unavailable or rate-limited, and MUST be possible to disable via a flag or environment variable.
 - **FR-017**: The tool MUST never transmit, expose, log, or overwrite the user's API key or `.env` during any update or check.
 - **FR-018**: Command output MUST be actionable on failure (state what failed and how to fix it), and the command MUST use meaningful exit codes (non-zero on failure; the tool's interrupt convention on cancellation).
 - **FR-019**: The update MUST apply all application files contained in the release package except the preserve-list, so that files added or removed between versions are handled without a manual step.
-- **FR-020**: Each published release package MUST carry a recorded version identifier equal to its release tag, so that version comparisons made by the tool are accurate.
+- **FR-020**: Each published release package MUST carry a recorded version identifier equal to its release tag, and each release MUST publish a SHA-256 checksum of the package, so that the tool can make accurate version comparisons and verify package integrity before applying.
+- **FR-021**: The release process MUST be automated so that publishing a release (via a version tag) builds the release package with its recorded version equal to the tag, generates the package's SHA-256 checksum, and attaches both to the published release — with no manual packaging step, so version and checksum never drift from the tag.
 
 ### Key Entities *(include if feature involves data)*
 
 - **Installed Version**: The authoritative identifier of the version currently installed locally; read by the updater, the check mode, and the run entry point; matches the release the install came from.
 - **Latest Release**: The most recent published release as reported by the official release source, comprising a version identifier and a downloadable release package.
-- **Release Package**: The distributable archive for a release. Contains the application files needed to run the tool plus the recorded version identifier; excludes user/local data and development-only artifacts.
+- **Release Package**: The distributable archive for a release. Contains the application files needed to run the tool plus the recorded version identifier; excludes user/local data and development-only artifacts. Each release also publishes a SHA-256 checksum of this package for integrity verification.
 - **Preserve-list**: The set of user/local paths an update must never modify or delete: `.env`, `inventory/`, `output/`, `.venv/`.
 - **Backup**: A recoverable snapshot of the files replaced by an update, enabling a revert to the prior version.
-- **Update Check Result**: The comparison outcome between installed and latest versions — up to date, update available (with the target version), or latest-unknown (source unreachable).
+- **Update Check Result**: The semantic-version comparison outcome between installed and latest versions — up to date (equal), update available (latest > installed, with the target version), ahead (installed > latest), or latest-unknown (source unreachable).
 
 ## Success Criteria *(mandatory)*
 
@@ -148,15 +160,15 @@ An analyst using the tool normally is told, unobtrusively, when a newer release 
 - For v1, only updating to the latest release is supported; pinning to or downgrading to an arbitrary historical version is not offered.
 - An update applies all files in the release package except the preserve-list.
 - The released package contains the runtime files needed to run the tool (application code, `requirements.txt`, README, landing page, and the version identifier) and excludes development-only artifacts (e.g., `tests/`, `specs/`, `.specify/`) and user data.
-- Package verification means a well-formed archive containing the expected version identifier; if a release publishes a checksum, it is used to further verify integrity.
+- Package verification means the download matches the SHA-256 checksum published with the release, the archive is well-formed, and it contains the expected version identifier.
 - Backups are stored within the tool folder; at minimum the most recently replaced set is retained to enable rollback.
-- The passive update notice is best-effort and throttled (checked at most once per run, or once per day), and can be disabled.
+- The passive update notice is best-effort and stateless — checked at most once per analyzer run, with a short timeout and no persisted state — and can be disabled via a flag or environment variable.
 
 ## Dependencies
 
 - **Input (external)**: The official GitHub release source — the latest version identifier and the downloadable release package. Note: contacting GitHub (`github.com` / `api.github.com`) is a new external endpoint relative to the current tool, which only contacts Cisco and FueliX; per the project constitution this is a reviewed change.
 - **Input**: An authoritative version identifier carried inside each release package (see FR-003/FR-020).
-- **Handoff (publisher process)**: The release process must package each release with a version identifier equal to its tag; this may require automating release packaging so the version never drifts from the tag.
+- **Handoff (publisher process, in scope)**: An automated release pipeline packages each release with a version identifier equal to its tag and a SHA-256 checksum, and attaches both to the published GitHub release, so the version and checksum never drift from the tag (FR-021).
 - **Related**: The public landing page (`docs/index.html`) already surfaces the latest release version from the same source; the updater's notion of "latest" should remain consistent with it.
 
 ## Out of Scope
@@ -165,5 +177,5 @@ An analyst using the tool normally is told, unobtrusively, when a newer release 
 - Migrating or transforming user data (e.g., inventory format changes) between versions.
 - Alternative distribution channels (pip/PyPI, OS package managers, packaged executables/installers).
 - Updating the Python interpreter or other system-level prerequisites.
-- Creating GitHub releases through the tool (maintainers publish releases; the tool only consumes them).
+- Creating or publishing GitHub releases from the *runtime tool* (an analyst running the updater never creates releases). Note: automated packaging of a release's versioned artifact and checksum, triggered when a maintainer publishes a tagged release, IS in scope (FR-021).
 - Rollback to arbitrary historical versions beyond the most recent backup (last known good).
