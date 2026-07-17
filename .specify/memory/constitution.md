@@ -1,13 +1,16 @@
 <!--
 Sync Impact Report
 ==================
-Version change: 1.0.0 → 1.1.0
-Rationale: Added a new "Branching Strategy" section defining spec branching and the
-           pull-request-to-main requirement. New material guidance → MINOR bump.
+Version change: 1.1.0 → 1.2.0
+Rationale: Expanded the Documentation quality gate to require the README and the GitHub
+           Pages landing page (docs/index.html) to keep their installation instructions
+           consistent with each other and with the code. New material guidance → MINOR bump.
 
 Modified principles: (none)
-Added sections:
-  - Branching Strategy
+Added sections: (none)
+Modified sections:
+  - Development Workflow & Quality Gates (Documentation bullet expanded to cover
+    docs/index.html and README consistency)
 Removed sections: (none)
 
 Templates requiring updates:
@@ -18,6 +21,7 @@ Templates requiring updates:
 
 Follow-up TODOs: (none)
 
+Previous version 1.1.0 (2026-07-14): added the "Branching Strategy" section.
 Previous version 1.0.0 (2026-07-14): initial ratification — Core Principles I–V,
 Technology & Data Constraints, Development Workflow & Quality Gates, Governance.
 -->
@@ -121,8 +125,12 @@ constitutional compliance is enforced.
 - Review: pull requests MUST confirm compliance with the Core Principles, especially
   Principle IV (conservative, traceable analysis) and Principle V (secrets/data
   handling). Any new runtime dependency MUST be explicitly justified (Principle I).
-- Documentation: the `README.md` MUST stay accurate for install and run steps whenever
-  those flows change.
+- Documentation: the `README.md` and the GitHub Pages landing page (`docs/index.html`)
+  MUST stay accurate for install and run steps whenever those flows change. Their
+  installation instructions MUST remain consistent with each other and with the code —
+  including the `inventory/` and `output/` folder conventions and where files are placed
+  or written. A change to the instructions in one MUST be mirrored in the other within the
+  same pull request.
 
 ## Governance
 
@@ -141,4 +149,4 @@ Compliance is verified at review time. Dependent Spec Kit artifacts (plan, spec,
 tasks templates and their generated documents) MUST remain consistent with the principles
 above; the Constitution Check in the planning workflow enforces this on each feature.
 
-**Version**: 1.1.0 | **Ratified**: 2026-07-14 | **Last Amended**: 2026-07-14
+**Version**: 1.2.0 | **Ratified**: 2026-07-14 | **Last Amended**: 2026-07-16

@@ -93,6 +93,17 @@
 
   .subnote { color: var(--muted); font-size: 13px; margin-top: 14px; }
 
+  /* Latest-release pill under the download button; hidden until the GitHub API responds. */
+  .release {
+    display: none; align-items: center; gap: 8px;
+    margin: 16px auto 0; font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 12.5px; color: var(--accent);
+    border: 1px solid var(--border); background: var(--panel);
+    padding: 5px 12px; border-radius: 999px;
+  }
+  .release.show { display: inline-flex; }
+  .release .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green); box-shadow: 0 0 10px var(--green); }
+
   section.block { padding: 30px 0; }
   h2 { font-size: 24px; letter-spacing: -0.01em; margin: 8px 0 18px; }
   h2 .num { color: var(--accent); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 18px; margin-right: 10px; }
@@ -193,6 +204,7 @@
       </a>
       <a class="btn btn-ghost" href="https://github.com/xavient/cisco-advisory-impact-analyzer">View on GitHub</a>
     </div>
+    <p class="release" id="release"><span class="dot"></span><span id="release-version"></span></p>
     <p class="subnote">Runs on macOS, Windows &amp; Linux · Python-based · your data never leaves your machine</p>
   </section>
 
@@ -238,8 +250,10 @@
           and unzip it into a folder.
         </li>
         <li>
-          <b>Add your inventory.</b> Copy your <code>inventory.xlsx</code> into that same folder,
-          next to <code>install.py</code>.
+          <b>Add your inventory.</b> Copy your <code>inventory.xlsx</code> into the
+          <code>inventory</code> subfolder. The installer creates this folder for you on first
+          run — or you can let it copy your file in when it prompts. Keep exactly one
+          <code>.xlsx</code> in it.
         </li>
         <li>
           <b>Open a terminal in the folder.</b>
@@ -256,7 +270,7 @@ python install.py      # Windows  (or:  py install.py)</code></pre>
           <b>Run it</b> — then paste your Cisco ERP link when prompted:
           <pre><code>python3 run.py         # macOS / Linux
 python run.py          # Windows  (or:  py run.py)</code></pre>
-          The report <code>analysis_output_&lt;date&gt;.xlsx</code> appears in the same folder.
+          The report <code>analysis_output_&lt;date&gt;.xlsx</code> appears in the <code>output</code> folder.
         </li>
       </ol>
       <div class="callout">
@@ -285,5 +299,28 @@ python run.py          # Windows  (or:  py run.py)</code></pre>
   </footer>
 
 </div>
+
+<script>
+  // Show the latest release version next to the download button. Pulls the newest
+  // tag from the GitHub Releases API at page load; if the request fails (offline,
+  // rate-limited, no releases yet), the pill stays hidden and the download button
+  // still points at /releases/latest.
+  (function () {
+    var pill = document.getElementById("release");
+    var label = document.getElementById("release-version");
+    if (!pill || !label) return;
+    fetch("https://api.github.com/repos/xavient/cisco-advisory-impact-analyzer/releases/latest", {
+      headers: { "Accept": "application/vnd.github+json" }
+    })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (data) {
+        if (!data || !data.tag_name) return;
+        var v = String(data.tag_name);
+        label.textContent = "Latest release " + (v.charAt(0) === "v" ? v : "v" + v);
+        pill.classList.add("show");
+      })
+      .catch(function () { /* leave the pill hidden */ });
+  })();
+</script>
 </body>
 </html>
