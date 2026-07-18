@@ -272,6 +272,15 @@ python install.py      # Windows  (or:  py install.py)</code></pre>
 python run.py          # Windows  (or:  py run.py)</code></pre>
           The report <code>analysis_output_&lt;date&gt;.xlsx</code> appears in the <code>output</code> folder.
         </li>
+        <li>
+          <b>Stay up to date</b> — update in place; your API key, inventory, and reports are
+          never touched:
+          <pre><code>python3 update.py      # macOS / Linux
+python update.py       # Windows</code></pre>
+          It fetches the latest release, verifies it, and applies it (<code>--check</code> to
+          only compare versions, <code>--rollback</code> to undo). Check your installed
+          version any time with <code>python3 run.py --version</code>.
+        </li>
       </ol>
       <div class="callout">
         The full walkthrough, output guide, and troubleshooting live in the
