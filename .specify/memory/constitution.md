@@ -1,17 +1,17 @@
 <!--
 Sync Impact Report
 ==================
-Version change: 1.2.0 → 1.3.0
-Rationale: Added GitHub as an allowed external endpoint for the self-updater
-           (update.py / updater.py), recording the "reviewed change" mandated by the
-           Technology & Data Constraints section. New allowed endpoint / material
-           guidance → MINOR bump. The analyzer's own contacted endpoints are unchanged.
+Version change: 1.3.0 → 1.4.0
+Rationale: Added a "Versioning & releases" quality gate: the committed VERSION file is the
+           single source of truth for the product version, and the Release workflow refuses
+           to publish when the pushed git tag does not match VERSION. New materially expanded
+           guidance → MINOR bump. Note this constitution's own version is independent of the
+           product version it now governs.
 
 Modified principles: (none)
 Added sections: (none)
 Modified sections:
-  - Technology & Data Constraints (Networking bullet expanded to allow the updater's
-    GitHub release endpoints over HTTPS)
+  - Development Workflow & Quality Gates (added the "Versioning & releases" gate)
 Removed sections: (none)
 
 Templates requiring updates:
@@ -22,6 +22,8 @@ Templates requiring updates:
 
 Follow-up TODOs: (none)
 
+Previous version 1.3.0 (2026-07-17): allowed the self-updater's GitHub release endpoints
+over HTTPS in Technology & Data Constraints.
 Previous version 1.2.0 (2026-07-16): expanded the Documentation quality gate to cover
 docs/index.html and README consistency.
 Previous version 1.1.0 (2026-07-14): added the "Branching Strategy" section.
@@ -138,6 +140,14 @@ constitutional compliance is enforced.
   including the `inventory/` and `output/` folder conventions and where files are placed
   or written. A change to the instructions in one MUST be mirrored in the other within the
   same pull request.
+- Versioning & releases: the committed `VERSION` file is the single source of truth for the
+  product version and MUST follow semantic versioning. A release is cut by pushing a git tag
+  equal to the current `VERSION`; the Release workflow MUST refuse to publish when the pushed
+  tag does not match `VERSION`, so the committed version, the git tag, and the packaged
+  version never drift. Bumping `VERSION` is an ordinary change that reaches `main` through a
+  pull request (see Branching Strategy), and the tag is pushed only after that PR merges. This
+  product version is independent of this constitution's own version. See `CONTRIBUTING.md` for
+  the release runbook.
 
 ## Governance
 
@@ -156,4 +166,4 @@ Compliance is verified at review time. Dependent Spec Kit artifacts (plan, spec,
 tasks templates and their generated documents) MUST remain consistent with the principles
 above; the Constitution Check in the planning workflow enforces this on each feature.
 
-**Version**: 1.3.0 | **Ratified**: 2026-07-14 | **Last Amended**: 2026-07-17
+**Version**: 1.4.0 | **Ratified**: 2026-07-14 | **Last Amended**: 2026-07-17
