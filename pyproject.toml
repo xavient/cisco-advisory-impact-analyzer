@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=61.0.0"]
+requires = ["setuptools>=77.0.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -7,7 +7,7 @@ name = "cisco-advisory-impact-analyzer"
 description = "AI-driven analysis of which firewalls in your inventory are impacted by a Cisco security advisory."
 readme = "README.md"
 requires-python = ">=3.9"
-license = { text = "MIT" }
+license = "MIT"
 authors = [{ name = "Xavient" }]
 keywords = ["cisco", "security", "advisory", "firewall", "csaf", "vulnerability"]
 dependencies = [
