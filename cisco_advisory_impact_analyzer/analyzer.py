@@ -7,36 +7,25 @@ download its CSAF, extract the "Vulnerable Products" / "Products Confirmed Not
 Vulnerable" sections plus the enumerated affected releases, and ask the FueliX AI
 which firewalls in your inventory are impacted. Writes a timestamped Excel report.
 
-Typical use (interactive):
-    python analyzer.py
-    -> place your single inventory .xlsx in the 'inventory' folder next to this
-       script, and .env next to this script first. Reports are written to the
-       'output' folder. Both folders are created automatically on first run.
-
-Automation / testing:
-    python analyzer.py --url <ERP_OR_ADVISORY_URL> [--inventory PATH]
-                       [--output-dir DIR] [--dry-run] [--keep-temp/--no-keep-temp]
+This module holds the analysis run flow; the command-line entry point is
+`cisco_advisory_impact_analyzer.cli`. Inputs are read from, and the report is written
+to, the current working folder (an `output/` subfolder), so the tool works from any
+folder once installed.
 """
 
 from __future__ import annotations
 
-import argparse
-import os
 import shutil
 import sys
 import tempfile
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
-import cisco
-import fuelix
-import inventory as inv
-import ui
-from report import write_report
+from cisco_advisory_impact_analyzer import cisco, config, fuelix
+from cisco_advisory_impact_analyzer import inventory as inv
+from cisco_advisory_impact_analyzer import ui
+from cisco_advisory_impact_analyzer.report import write_report
 
-ROOT = Path(__file__).resolve().parent
-INVENTORY_DIR = ROOT / "inventory"
-OUTPUT_DIR = ROOT / "output"
 CISCO_HOST = "sec.cloudapps.cisco.com"
 
 
@@ -47,29 +36,9 @@ def die(msg, hint=None):
     sys.exit(1)
 
 
-# --------------------------------------------------------------------------- #
-# Environment / .env
-# --------------------------------------------------------------------------- #
-def load_env(root):
-    """Load root/.env into os.environ. Uses python-dotenv if available, else a
-    minimal stdlib parser so the app still works with only openpyxl installed."""
-    env_path = root / ".env"
-    try:
-        from dotenv import load_dotenv
-
-        load_dotenv(env_path)
-        return
-    except ImportError:
-        pass
-    if not env_path.exists():
-        return
-    for line in env_path.read_text(encoding="utf-8", errors="replace").splitlines():
-        line = line.strip()
-        if not line or line.startswith("#") or "=" not in line:
-            continue
-        key, val = line.split("=", 1)
-        val = val.strip().strip('"').strip("'")
-        os.environ.setdefault(key.strip(), val)
+def default_output_dir():
+    """Reports go to ./output in the current working folder (Assumptions, FR-020)."""
+    return Path.cwd() / "output"
 
 
 # --------------------------------------------------------------------------- #
@@ -83,15 +52,29 @@ def ensure_dirs(*dirs):
 
 
 # --------------------------------------------------------------------------- #
-# Inventory discovery
+# Inventory discovery & selection
 # --------------------------------------------------------------------------- #
-def find_inventory(inventory_dir, explicit=None):
-    """Return the single inventory .xlsx to analyze.
+def _is_valid_inventory(path, sheet):
+    """True if `path` parses as an inventory with the required structure and rows."""
+    try:
+        return bool(inv.load_inventory(path, sheet))
+    except Exception:  # noqa: BLE001 - InventoryError, BadZipFile, empty file, etc.
+        return False
 
-    With --inventory (explicit) the given file is used directly. Otherwise the
-    'inventory' folder must contain exactly one .xlsx file: 0 or >1 is a fatal,
-    actionable error. Only .xlsx files are counted; lock/temp files (~$*.xlsx) and
-    anything with another extension are ignored.
+
+def _xlsx_candidates(folder):
+    """The .xlsx files in `folder`, ignoring Excel lock/temp files (~$*.xlsx)."""
+    return sorted(p for p in folder.glob("*.xlsx") if not p.name.startswith("~$"))
+
+
+def resolve_inventory(explicit=None, interactive=True, folder=None, sheet="FW_List"):
+    """Return the inventory .xlsx to analyze.
+
+    With --inventory (explicit) the given file is used directly (validated when loaded).
+    Otherwise the current working folder is searched: exactly one valid inventory is used
+    silently; if there is not exactly one, an interactive session lists the folder's files
+    and lets the user pick (validating and re-prompting), while a non-interactive session
+    fails with an actionable error (FR-015, FR-016, FR-025).
     """
     if explicit:
         p = Path(explicit)
@@ -99,21 +82,41 @@ def find_inventory(inventory_dir, explicit=None):
             die(f"Inventory file not found: {p}")
         return p
 
-    inventory_dir = Path(inventory_dir)
-    candidates = sorted(
-        p for p in inventory_dir.glob("*.xlsx")
-        if not p.name.startswith("~$")
+    folder = Path(folder) if folder else Path.cwd()
+    valid = [p for p in _xlsx_candidates(folder) if _is_valid_inventory(p, sheet)]
+    if len(valid) == 1:
+        return valid[0]
+
+    if not interactive:
+        if not valid:
+            die(f"No valid inventory .xlsx found in {folder}.",
+                hint="Place your firewall inventory .xlsx (sheet 'FW_List') here, or pass "
+                     "--inventory PATH.")
+        die(f"More than one valid inventory .xlsx found in {folder}.",
+            hint="Choose one with --inventory PATH.")
+    return _pick_inventory(folder, sheet)
+
+
+def _pick_inventory(folder, sheet):
+    """Interactively list the folder's files and let the user pick a valid inventory."""
+    files = sorted(
+        p for p in folder.iterdir()
+        if p.is_file() and not p.name.startswith("~$") and not p.name.startswith(".")
     )
-    if len(candidates) == 1:
-        return candidates[0]
-    if not candidates:
-        die(f"No inventory file found in {inventory_dir}.",
-            hint="Place exactly one firewall inventory .xlsx file in that folder "
-                 "(sheet 'FW_List').")
-    names = ", ".join(p.name for p in candidates)
-    die(f"More than one inventory file found in {inventory_dir}: {names}.",
-        hint="Keep exactly one .xlsx inventory file in that folder and remove the "
-             "others, then run again.")
+    if not files:
+        die(f"No files to analyze in {folder}.",
+            hint="Place your firewall inventory .xlsx (sheet 'FW_List') here, then run again.")
+
+    ui.plain()
+    ui.system("Select the inventory file to analyze:")
+    names = [p.name for p in files]
+    while True:
+        choice = ui.select("Inventory", names)
+        chosen = folder / choice
+        if _is_valid_inventory(chosen, sheet):
+            return chosen
+        ui.warn(f"'{choice}' is not a valid inventory (need an .xlsx with sheet "
+                f"'{sheet}' and the expected columns). Please choose another.")
 
 
 # --------------------------------------------------------------------------- #
@@ -198,51 +201,58 @@ def _assessment_label(assessment):
 
 
 # --------------------------------------------------------------------------- #
-# Main
+# Run flow
 # --------------------------------------------------------------------------- #
-def main():
-    ap = argparse.ArgumentParser(description="Cisco advisory impact analyzer (AI-driven)")
-    ap.add_argument("--url", help="ERP page URL or single advisory URL (else prompted)")
-    ap.add_argument("--inventory",
-                    help="Path to inventory .xlsx (else the single .xlsx in the "
-                         "'inventory' folder)")
-    ap.add_argument("--sheet", default="FW_List", help="Inventory sheet name")
-    ap.add_argument("--output-dir", default=str(OUTPUT_DIR),
-                    help="Where to write the report (default: the 'output' folder)")
-    ap.add_argument("--dry-run", action="store_true", help="Skip the AI call (pipeline test)")
-    ap.add_argument("--keep-temp", dest="keep_temp", action="store_true", default=True)
-    ap.add_argument("--no-keep-temp", dest="keep_temp", action="store_false")
-    args = ap.parse_args()
+def run(args):
+    """Execute the analysis flow for the parsed CLI args. Returns a process exit code.
 
-    load_env(ROOT)
+    A supplied flag skips its interactive prompt; providing the URL makes the run fully
+    flag-driven, which also skips the confirmation prompt (FR-025).
+    """
+    config.load_local_env()
+    api_key = config.resolve(config.API_KEY)
+    model = config.resolve(config.MODEL)
+    base_url = config.resolve(config.BASE_URL)
 
-    # 0. Ensure the inventory/output folders exist (created if missing; never an error).
-    ensure_dirs(INVENTORY_DIR, OUTPUT_DIR)
+    output_dir = Path(args.output_dir) if args.output_dir else default_output_dir()
+    interactive = sys.stdin.isatty()
+    fully_flag_driven = bool(args.url)
 
     # 1. API key check (skipped for dry-run so the pipeline can be tested offline).
-    api_key = os.environ.get("FUELIX_API_KEY", "").strip()
     if not args.dry_run and not api_key:
-        die("Missing FUELIX_API_KEY.",
-            hint=f"Copy .env.example to .env in {ROOT} and set your FueliX API key "
-                 "(or run install.py).")
-    model = os.environ.get("FUELIX_MODEL", fuelix.DEFAULT_MODEL).strip()
-    base_url = os.environ.get("FUELIX_BASE_URL", fuelix.DEFAULT_BASE_URL).strip()
+        die("No FueliX API key is configured.",
+            hint="Run 'cisco-advisory-impact-analyzer --config' to set your FueliX API key.")
 
-    # 2. Inventory.
-    inv_path = find_inventory(INVENTORY_DIR, args.inventory)
-    inventory = inv.load_inventory(inv_path, args.sheet)
+    # 2. Inventory (discover in the working folder or let the user pick).
+    inv_path = resolve_inventory(args.inventory, interactive, sheet=args.sheet)
+    try:
+        inventory = inv.load_inventory(inv_path, args.sheet)
+    except inv.InventoryError as e:
+        die(str(e))
     if not inventory:
         die(f"Inventory {inv_path} has no firewall rows.")
     combos, combo_map = inv.build_combos(inventory)
     ui.ok(f"Loaded {ui.bold(str(len(inventory)))} firewalls "
           f"({len(combos)} distinct combos) from {ui.bold(inv_path.name)}.")
 
-    # 3. URL.
-    url = args.url if args.url else prompt_for_url()
-    if args.url and not is_valid_cisco_url(url):
-        die(f"Invalid Cisco URL: {url}")
+    # 3. URL (supplied via --url or prompted).
+    if args.url:
+        url = args.url.strip()
+        if not is_valid_cisco_url(url):
+            die(f"Invalid Cisco URL: {url}")
+    else:
+        url = prompt_for_url()
 
-    # 4. Discover advisories.
+    # 4. Confirmation (skipped in a fully flag-driven run).
+    if not fully_flag_driven:
+        ui.plain()
+        ui.system(f"The advisory URL will be analyzed and the report saved to "
+                  f"{ui.bold(str(output_dir))} in this folder.")
+        if not ui.confirm("Continue", default=False):
+            ui.plain("No changes made.")
+            return 0
+
+    # 5. Discover advisories.
     ui.plain()
     ui.system("Discovering advisories ...")
     slugs = cisco.discover_advisories(url)
@@ -250,7 +260,7 @@ def main():
         die("No advisories found at that URL.")
     ui.ok(f"Found {ui.bold(str(len(slugs)))} advisory(ies).")
 
-    # 5. Temp folder for CSAF downloads.
+    # 6. Temp folder for CSAF downloads.
     temp_dir = Path(tempfile.mkdtemp(prefix="csaf_"))
     ui.info("Downloading CSAF files to: " + ui.dim(str(temp_dir)))
 
@@ -258,7 +268,7 @@ def main():
         ui.system(f"Analyzing with FueliX model '{model}' ...")
     ui.plain()
 
-    # 6. Process each advisory.
+    # 7. Process each advisory.
     results = []
     for slug in slugs:
         adv = download_and_extract(slug, temp_dir)
@@ -288,27 +298,19 @@ def main():
                             adv["vulnerable_products"] or adv["title"],
                             f"ERROR: {e}"))
 
-    # 7. Write the report.
-    out = write_report(results, args.output_dir)
+    # 8. Write the report (creating output/ if needed; fail clearly if it cannot be created).
+    try:
+        ensure_dirs(output_dir)
+        out = write_report(results, str(output_dir))
+    except OSError as e:
+        die(f"Could not write the report to {output_dir}: {e}",
+            hint="Check that the current folder is writable, or pass --output-dir DIR.")
     ui.plain()
     ui.ok("Wrote " + ui.bold(out))
 
-    # 8. Temp cleanup.
+    # 9. Temp cleanup.
     if args.keep_temp:
         ui.plain(ui.dim(f"CSAF files kept at: {temp_dir}"))
     else:
         shutil.rmtree(temp_dir, ignore_errors=True)
-
-
-def run_cli():
-    """Entry point with graceful Ctrl+C / EOF handling (no traceback)."""
-    try:
-        main()
-    except KeyboardInterrupt:
-        print()
-        ui.warn("Cancelled.")
-        sys.exit(130)
-
-
-if __name__ == "__main__":
-    run_cli()
+    return 0

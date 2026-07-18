@@ -1,10 +1,10 @@
 name: Release
 
-# Build and publish the release package whenever a version tag is pushed. The committed
-# VERSION file is the single source of truth for the product version; this workflow refuses
-# to publish unless the pushed tag equals VERSION, then ships that file alongside a matching
-# SHA-256 checksum, so the committed version, the git tag, and the packaged version can never
-# drift and the self-updater's version and integrity checks stay honest (FR-020/FR-021).
+# Publish a GitHub Release whenever a version tag is pushed. The committed VERSION file is the
+# single source of truth for the product version; this workflow refuses to publish unless the
+# pushed tag equals VERSION. No build artifact is uploaded — the tool is installed with uv
+# directly from the git source (`uv tool install --from git+<repo>@<tag>`). The published
+# Release is what the tool's version check discovers via GitHub's /releases/latest.
 
 on:
   push:
@@ -15,7 +15,7 @@ permissions:
   contents: write
 
 jobs:
-  package:
+  release:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -23,7 +23,7 @@ jobs:
       - name: Verify VERSION matches the release tag
         # VERSION is the single source of truth. Bump it in a PR before tagging (see
         # CONTRIBUTING.md); this gate fails the release if the tag and VERSION disagree,
-        # so a mismatched version can never ship (FR-020).
+        # so the committed version, the git tag, and the installed version can never drift.
         run: |
           set -euo pipefail
           TAG="${GITHUB_REF_NAME}"
@@ -34,40 +34,9 @@ jobs:
           fi
           echo "VERSION ($FILE_VERSION) matches tag ($TAG)."
 
-      - name: Build package (generate MANIFEST, zip, checksum)
-        run: |
-          set -euo pipefail
-          TAG="${GITHUB_REF_NAME}"
-          PKG="cisco-advisory-impact-analyzer"
-
-          # VERSION already equals the tag (verified above) and is copied into the package
-          # as-is below — no stamping needed.
-
-          # Assemble a clean, flat package of runtime files only (research D11/D12) —
-          # no user data (.env, inventory/, output/, .venv), no dev-only artifacts.
-          rm -rf staging dist
-          mkdir -p "staging/docs" dist
-          cp analyzer.py cisco.py fuelix.py inventory.py report.py ui.py \
-             install.py run.py update.py updater.py \
-             requirements.txt README.md .env.example VERSION "staging/"
-          cp docs/index.html "staging/docs/"
-
-          # MANIFEST lists every packaged path (used by the updater to remove files that
-          # are dropped between versions). Generated from the staged contents.
-          ( cd staging && find . -type f | sed 's|^\./||' | sort > MANIFEST )
-
-          # Flat zip: files live at the archive root (no top-level folder).
-          ( cd staging && zip -r -X "../dist/${PKG}.zip" . )
-
-          # SHA-256 the updater verifies before applying (FR-006).
-          ( cd dist && sha256sum "${PKG}.zip" > "${PKG}.zip.sha256" )
-
-          echo "Built ${PKG}.zip for ${TAG}:"
-          ( cd dist && cat "${PKG}.zip.sha256" )
-
-      - name: Publish release assets
+      - name: Publish GitHub Release
+        # Creates the Release object for this tag (no assets). The tool's version check relies on
+        # a published Release existing so GitHub's /releases/latest resolves.
         uses: softprops/action-gh-release@v2
         with:
-          files: |
-            dist/cisco-advisory-impact-analyzer.zip
-            dist/cisco-advisory-impact-analyzer.zip.sha256
+          generate_release_notes: true

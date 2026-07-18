@@ -20,6 +20,16 @@ import urllib.request
 DEFAULT_BASE_URL = "https://api.fuelix.ai/v1"
 DEFAULT_MODEL = "claude-sonnet-5"
 
+# Curated list of known-good FueliX models offered by `--config` (FR-009). Maintained in the
+# product and kept current with what FueliX exposes; DEFAULT_MODEL MUST be the first entry.
+# A previously-configured model not in this list is preserved rather than discarded.
+KNOWN_MODELS = [
+    "claude-sonnet-5",
+    "claude-opus-4-8",
+    "claude-haiku-4-5",
+    "claude-fable-5",
+]
+
 SYSTEM_PROMPT = """\
 You are a Cisco firewall vulnerability impact analyst. You are given ONE Cisco security \
 advisory and a firewall inventory that contains ONLY ASA and FTD devices. Decide which \

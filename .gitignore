@@ -7,6 +7,11 @@ __pycache__/
 .venv/
 venv/
 
+# Build artifacts (setuptools / uv build)
+/build/
+/dist/
+*.egg-info/
+
 # Inputs / outputs
 inventory.xlsx
 analysis_output_*.xlsx
@@ -18,13 +23,6 @@ analysis_output_*.xlsx
 
 # Temp CSAF downloads (created via tempfile)
 csaf_*/
-
-# Self-updater: local backups and the in-progress recovery marker (update.py)
-/.update-backup/
-/.update-in-progress
-
-# Install test harness: local share/staging artifacts (tools/install-test/test-install.sh)
-tools/install-test/share/
 
 # macOS
 .DS_Store

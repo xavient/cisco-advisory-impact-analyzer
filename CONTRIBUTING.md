@@ -11,7 +11,8 @@ time.
   permitted.
 - Features are developed on a spec branch created off `main` (see the Spec Kit flow under
   `.specify/`). Small chores may use a short-lived `chore/*` branch.
-- The existing test suite (`python -m pytest`) must pass before a change is merged.
+- The existing test suite (`python -m unittest discover -s tests`) must pass before a change is
+  merged.
 
 ## Versioning & releases
 
@@ -19,7 +20,7 @@ There are **three independent version numbers** in this repo — do not conflate
 
 | Version | Lives in | Tracks |
 |---|---|---|
-| **Product version** | `VERSION` | The shipped app; what the self-updater compares |
+| **Product version** | `VERSION` | The shipped app; what the version check compares |
 | **Release tag** | git tags / GitHub Releases | The commit a release is built from |
 | **Constitution version** | header + Sync Impact Report in `constitution.md` | The governance document's own semver |
 
@@ -46,13 +47,13 @@ tie it to a product release.
 
    `tools/release.py` reads `VERSION` and pushes a matching tag, so you can't hand-type a
    mismatched one; pass `--dry-run` to preview.
-3. **CI builds and publishes.** The Release workflow verifies `tag == VERSION`, packages the
-   runtime files into `cisco-advisory-impact-analyzer.zip`, generates a SHA-256 checksum, and
-   publishes the GitHub Release the self-updater downloads from.
+3. **CI publishes the Release.** The Release workflow verifies `tag == VERSION` and publishes a
+   GitHub Release for the tag. No build artifact is uploaded — the tool is installed with uv
+   directly from the git source (`uv tool install --from git+<repo>@<tag>`), and the published
+   Release is what the tool's version check discovers via GitHub's `/releases/latest`.
 
 If the tag and `VERSION` disagree, the workflow fails fast with a clear error — bump `VERSION`
 in a PR first, then re-tag.
 
-> **Bootstrap note:** installs older than the first release that shipped the self-updater must
-> be re-installed once manually to get onto a version that contains `updater.py`. From then on,
-> every future release is picked up automatically.
+> **Updating:** end users update with `cisco-advisory-impact-analyzer --update`, which reinstalls
+> the tool via uv pinned to the latest published release.

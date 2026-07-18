@@ -17,7 +17,7 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-import cisco  # noqa: E402
+from cisco_advisory_impact_analyzer import cisco  # noqa: E402
 
 DEFAULT_SAMPLES = [
     "cisco-sa-onprem-fmc-authbypass-5JPp45V2.json",  # relationships shape, FMC
