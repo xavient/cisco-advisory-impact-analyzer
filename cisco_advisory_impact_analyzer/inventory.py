@@ -14,7 +14,11 @@ import sys
 try:
     import openpyxl
 except ImportError:  # pragma: no cover
-    sys.exit("openpyxl is required. Install with: pip install -r requirements.txt")
+    sys.exit("openpyxl is required. Reinstall the tool with uv.")
+
+
+class InventoryError(Exception):
+    """The file is not a usable inventory (wrong structure / not a valid workbook)."""
 
 
 def load_inventory(path, sheet=None):
@@ -41,7 +45,7 @@ def load_inventory(path, sheet=None):
     ci_type = col("firewalltype", "type")
     ci_ver = col("version", "ios")
     if ci_name is None or ci_type is None or ci_ver is None:
-        sys.exit(
+        raise InventoryError(
             "Inventory is missing required columns. Expected a name column, a "
             "firewall-type column, and an IOS-version column.\n"
             f"Found headers: {rows[0]}"

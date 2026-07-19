@@ -1,9 +1,8 @@
 """
-Tiny terminal styling + prompt helpers, shared by install.py, run.py and analyzer.py.
+Tiny terminal styling + prompt helpers, shared across the package (cli, analyzer, config).
 
-Standard library only (the installer runs before the virtual environment exists, so it
-cannot depend on third-party packages). Colors switch off automatically when output is
-not a TTY, when NO_COLOR is set, or when the terminal can't be put into ANSI mode.
+Standard library only. Colors switch off automatically when output is not a TTY, when
+NO_COLOR is set, or when the terminal can't be put into ANSI mode.
 
 Conventions used across the app:
   * system / status messages -> cyan, with a colored status glyph (ok/warn/fail/info)
@@ -191,6 +190,30 @@ def confirm(label, default=True):
     if not answer:
         return default
     return answer.strip().lower() in ("y", "yes")
+
+
+def select(label, options, default=None):
+    """Present a numbered menu and return the chosen option string.
+
+    Accepts either the item number or the exact value. Empty input keeps `default` when one is
+    given (shown as "(current)"). Re-prompts until a valid choice is made. Raises
+    KeyboardInterrupt on Ctrl+C / EOF so the caller's top level can exit cleanly.
+    """
+    for i, opt in enumerate(options, 1):
+        marker = dim("  (current)") if default is not None and opt == default else ""
+        print(f"  {bold(str(i))}. {opt}{marker}")
+    while True:
+        raw = ask(label).strip()
+        if not raw and default is not None:
+            return default
+        if raw.isdigit():
+            idx = int(raw)
+            if 1 <= idx <= len(options):
+                return options[idx - 1]
+        if raw in options:
+            return raw
+        hint = " or press Enter to keep the current value" if default is not None else ""
+        warn(f"Enter a number from the list{hint}.")
 
 
 def ask_secret(label):

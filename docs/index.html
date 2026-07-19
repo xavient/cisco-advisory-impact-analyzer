@@ -199,13 +199,13 @@
       ASA/FTD devices in <b>your</b> inventory are impacted — as a ready-to-share Excel report.
     </p>
     <div class="cta">
-      <a class="btn btn-primary" href="https://github.com/xavient/cisco-advisory-impact-analyzer/releases/latest/download/cisco-advisory-impact-analyzer.zip">
-        ↓ Download &nbsp;<small>latest release (.zip)</small>
+      <a class="btn btn-primary" href="#install">
+        Install with uv &nbsp;<small>one command</small>
       </a>
       <a class="btn btn-ghost" href="https://github.com/xavient/cisco-advisory-impact-analyzer">View on GitHub</a>
     </div>
     <p class="release" id="release"><span class="dot"></span><span id="release-version"></span></p>
-    <p class="subnote">Runs on macOS, Windows &amp; Linux · Python-based · your data never leaves your machine</p>
+    <p class="subnote">Runs on macOS, Windows &amp; Linux · installed as a uv tool · your data never leaves your machine</p>
   </section>
 
   <section class="block">
@@ -232,9 +232,9 @@
     <h2><span class="num">01</span>Before you start</h2>
     <div class="panel">
       <ul class="check">
-        <li><b>Python 3.9 or newer</b> — <span>a one-time install (links in the repo README).</span></li>
+        <li><b>uv</b> — <span>Astral's Python tool installer (<a href="https://docs.astral.sh/uv/getting-started/installation/">install once</a>); it manages Python for you.</span></li>
         <li><b>A FueliX API key</b> — <span>each person uses their own (see “Get your key” below).</span></li>
-        <li><b>Your firewall inventory</b> — <span>an Excel file named <code>inventory.xlsx</code> (sheet <code>FW_List</code>).</span></li>
+        <li><b>Your firewall inventory</b> — <span>an Excel <code>.xlsx</code> (sheet <code>FW_List</code>) in the folder you run from.</span></li>
         <li><b>Internet access</b> — <span>to <code>sec.cloudapps.cisco.com</code> and <code>api.fuelix.ai</code>.</span></li>
       </ul>
     </div>
@@ -245,46 +245,37 @@
     <div class="panel">
       <ol class="steps">
         <li>
-          <b>Download &amp; unzip.</b> Grab the
-          <a href="https://github.com/xavient/cisco-advisory-impact-analyzer/releases/latest/download/cisco-advisory-impact-analyzer.zip">latest release</a>
-          and unzip it into a folder.
+          <b>Install the tool</b> with uv (one command, works the same on every OS):
+          <pre><code>uv tool install cisco-advisory-impact-analyzer \
+  --from git+https://github.com/xavient/cisco-advisory-impact-analyzer</code></pre>
+          This puts a single <code>cisco-advisory-impact-analyzer</code> command on your PATH —
+          no cloning, no virtual environment to activate.
         </li>
         <li>
-          <b>Add your inventory.</b> Copy your <code>inventory.xlsx</code> into the
-          <code>inventory</code> subfolder. The installer creates this folder for you on first
-          run — or you can let it copy your file in when it prompts. Keep exactly one
-          <code>.xlsx</code> in it.
+          <b>Configure your API key</b> (stored once, per user; used from any folder):
+          <pre><code>cisco-advisory-impact-analyzer --config</code></pre>
         </li>
         <li>
-          <b>Open a terminal in the folder.</b>
-          <div class="os">Windows: Shift + right-click in the folder → “Open PowerShell window here”. &nbsp;·&nbsp;
-          macOS: open Terminal, type <code>cd&nbsp;</code> then drag the folder in. &nbsp;·&nbsp;
-          Linux: right-click → “Open Terminal Here”.</div>
+          <b>Run it</b> from the folder that holds your inventory <code>.xlsx</code>, then paste
+          your Cisco ERP link when prompted:
+          <pre><code>cd /path/to/your/inventory-folder
+cisco-advisory-impact-analyzer</code></pre>
+          The report <code>analysis_output_&lt;date&gt;.xlsx</code> appears in an <code>output</code>
+          folder inside that same folder.
         </li>
         <li>
-          <b>Run the installer</b> (sets up everything and asks for your API key):
-          <pre><code>python3 install.py     # macOS / Linux
-python install.py      # Windows  (or:  py install.py)</code></pre>
-        </li>
-        <li>
-          <b>Run it</b> — then paste your Cisco ERP link when prompted:
-          <pre><code>python3 run.py         # macOS / Linux
-python run.py          # Windows  (or:  py run.py)</code></pre>
-          The report <code>analysis_output_&lt;date&gt;.xlsx</code> appears in the <code>output</code> folder.
-        </li>
-        <li>
-          <b>Stay up to date</b> — update in place; your API key, inventory, and reports are
-          never touched:
-          <pre><code>python3 update.py      # macOS / Linux
-python update.py       # Windows</code></pre>
-          It fetches the latest release, verifies it, and applies it (<code>--check</code> to
-          only compare versions, <code>--rollback</code> to undo). Check your installed
-          version any time with <code>python3 run.py --version</code>.
+          <b>Stay up to date</b> — check your version and update via uv:
+          <pre><code>cisco-advisory-impact-analyzer --version
+cisco-advisory-impact-analyzer --update</code></pre>
+          A normal run also offers to update first when a newer version is available.
         </li>
       </ol>
       <div class="callout">
-        The full walkthrough, output guide, and troubleshooting live in the
-        <a href="https://github.com/xavient/cisco-advisory-impact-analyzer#readme">repository README</a>.
+        <b>No uv?</b> You can install with just Python 3.9+ (a <code>venv</code> +
+        <code>pip install .</code> from the source) — see
+        <a href="https://github.com/xavient/cisco-advisory-impact-analyzer#install-without-uv-python-only">Install without uv</a>
+        in the README. The full walkthrough, output guide, and troubleshooting also live in the
+        <a href="https://github.com/xavient/cisco-advisory-impact-analyzer#readme">README</a>.
       </div>
     </div>
   </section>
@@ -296,9 +287,9 @@ python update.py       # Windows</code></pre>
         <li>Go to <a href="https://dev.fuelix.ai">dev.fuelix.ai</a> and log in.</li>
         <li>Open your <b>Default</b> project → the <b>“…”</b> menu → <b>View</b>.</li>
         <li>Under <b>API keys</b>, copy the key that’s already listed.</li>
-        <li>Paste it when the installer asks for <code>FUELIX_API_KEY</code>.</li>
+        <li>Paste it when you run <code>cisco-advisory-impact-analyzer --config</code>.</li>
       </ol>
-      <p class="muted" style="margin:14px 0 0">Keep your key private — it’s stored locally in a <code>.env</code> file and is never shared or committed.</p>
+      <p class="muted" style="margin:14px 0 0">Keep your key private — it’s stored locally in a per-user config file (owner-only) and is never shared or committed.</p>
     </div>
   </section>
 

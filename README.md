@@ -9,31 +9,23 @@ products and software releases against **your firewall inventory**. The result i
 timestamped Excel file listing, per advisory, the impacted firewalls — or `Indeterminate`
 / `Not Affected`.
 
-Works on **macOS, Windows, and Linux**.
+Installed as a **[uv](https://docs.astral.sh/uv/) tool**: one install command, then a single
+`cisco-advisory-impact-analyzer` command you can run from any folder. Works on **macOS,
+Windows, and Linux**.
 
 ---
 
 ## Before you start — what you need
 
-Please make sure you have all four of these. The tool will not run without them.
-
 | # | Requirement | How to get it |
 | - | ----------- | ------------- |
-| 1 | **Python 3.9 or newer** | Install once from the links below. |
+| 1 | **uv** (recommended) — or just **Python 3.9+** | Install uv once from <https://docs.astral.sh/uv/getting-started/installation/> (it manages Python for you). Can't install uv? See [Install without uv](#install-without-uv-python-only) — you only need Python. |
 | 2 | **A FueliX API key** | Get yours from <https://dev.fuelix.ai> — each person needs their own (steps below). |
-| 3 | **Your firewall inventory** as a single Excel `.xlsx` file placed in the **`inventory`** folder | You build this yourself (format below). |
+| 3 | **Your firewall inventory** as an Excel `.xlsx` file in the folder you run from | You build this yourself (format below). |
 | 4 | **Internet access** to `sec.cloudapps.cisco.com` and `api.fuelix.ai` | Usually already available; corporate proxies can block these. |
 
-> The API key is stored in a small file called **`.env`** in the tool's folder. **The
-> installer creates this file for you** and asks for your key — you do not need to make it
-> by hand. The tool will refuse to run if the `.env` file or the key is missing.
-
-**Installing Python (one time):**
-- **Windows:** <https://www.python.org/downloads/windows/> — on the first installer
-  screen, tick **“Add python.exe to PATH”** before clicking Install. (Or install “Python”
-  from the Microsoft Store.)
-- **macOS:** <https://www.python.org/downloads/macos/> (or `brew install python`).
-- **Linux:** use your package manager, e.g. `sudo apt install python3 python3-venv`.
+> Your API key is stored once, per user, via `cisco-advisory-impact-analyzer --config`. The
+> tool will refuse to analyze until a key is configured, and it points you to `--config`.
 
 ### Inventory format
 
@@ -45,58 +37,91 @@ names can vary slightly — matching is flexible):
 | FWLOC1-001 | ISA-3000 | FTD | 7.4.2 | 2 |
 | FWLOC3-004 | ASA 5506 | ASA | 9.16(4)67 | 1 |
 
-`Firewalltype` should be `FTD`, `ASA`, or `ASAv`. If you don't have a template, run the
-installer first — it will tell you where to put the file.
+`Firewalltype` should be `FTD`, `ASA`, or `ASAv`. Put the file in whatever folder you plan to
+run the tool from; the report is written to an `output/` folder next to it.
 
 ---
 
 ## Install (one time)
 
-**1. Get the tool.** On the GitHub page, click the green **`Code`** button → **Download
-ZIP**. Unzip it. You'll get a folder (e.g. `cisco-advisory-impact-analyzer`).
-
-**2. Put your inventory in the `inventory` folder.** Copy your inventory `.xlsx` into the
-**`inventory`** subfolder of the unzipped folder (the tool creates this folder for you on
-first run if it isn't there). Keep **exactly one** `.xlsx` file in it — if the tool finds
-more than one, it stops and asks you to clean it up.
-
-**3. Open a terminal *in that folder*.**
-- **Windows:** open the folder in File Explorer, then Shift + right-click an empty area →
-  **“Open PowerShell window here.”**
-- **macOS:** open **Terminal**, type `cd ` (with a space), then drag the folder onto the
-  Terminal window and press Enter.
-- **Linux:** right-click the folder → **“Open Terminal Here,”** or `cd` into it.
-
-**4. Run the installer.**
+With `uv` on your machine, install the tool straight from GitHub:
 
 ```bash
-python3 install.py        # macOS / Linux
-python install.py         # Windows  (if that fails, try:  py install.py)
+uv tool install cisco-advisory-impact-analyzer \
+  --from git+https://github.com/xavient/cisco-advisory-impact-analyzer
 ```
 
-The installer will:
-1. check your Python version,
-2. create a private, self-contained environment (`.venv`) — it does **not** touch your
-   system Python,
-3. install the two small packages it needs,
-4. **ask for your FueliX API key** (typing is hidden) and save it to `.env`,
-5. confirm your `inventory.xlsx` is present,
-6. run a quick self-check.
+This puts a single **`cisco-advisory-impact-analyzer`** command on your PATH. There is no
+repository to clone and no virtual environment to create or activate.
 
-When it finishes you'll see **“Setup complete.”**
+Then set your FueliX API key once (stored per-user, used from any folder):
+
+```bash
+cisco-advisory-impact-analyzer --config
+```
+
+`--config` asks for your API key (typing is hidden) and lets you pick the AI model from a short
+list (default `claude-sonnet-5`). The values are saved to a per-user config file — see
+[Configuration](#configuration-your-api-key) below.
+
+---
+
+## Install without uv (Python only)
+
+If you **can't install uv** (e.g. a locked-down machine), you can install and run the tool with
+just **Python 3.9 or newer** — the `venv` and `pip` modules that ship with Python. No admin
+rights and no extra tools are needed.
+
+**1. Get the code.** On the GitHub page, click the green **`Code`** button → **Download ZIP**,
+and unzip it. (Or `git clone` the repo.) Open a terminal **inside** the unzipped folder.
+
+**2. Create an isolated environment and install the tool into it:**
+
+macOS / Linux:
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install .
+```
+
+Windows (PowerShell):
+
+```powershell
+py -m venv .venv
+.venv\Scripts\Activate.ps1
+py -m pip install .
+```
+
+This installs the `cisco-advisory-impact-analyzer` command **inside that environment**. From then
+on it behaves exactly like the uv install — use it as described in [Run it](#run-it) and
+[Configuration](#configuration-your-api-key) (`cisco-advisory-impact-analyzer --config`, then
+`cisco-advisory-impact-analyzer` from your inventory folder).
+
+**Notes for this path:**
+
+- **Activate first, every session.** In each new terminal, re-run the activation command
+  (`source .venv/bin/activate` on macOS/Linux, `.venv\Scripts\Activate.ps1` on Windows) before
+  using the command. If you don't want to activate, call it by full path — e.g.
+  `.venv/bin/cisco-advisory-impact-analyzer` — or run `python -m cisco_advisory_impact_analyzer.cli`.
+- **Updating is manual here.** `--update` is uv-specific and will report that uv wasn't found. To
+  update, download the newer ZIP and re-run `python -m pip install .` in your environment. Pass
+  `--no-update-check` to skip the start-of-run version check.
+- Everything else — `--config`, inventory discovery, the `output/` folder, `--dry-run`, and the
+  analysis itself — works identically to the uv install.
 
 ---
 
 ## Run it
 
-In the same folder, each time you want to analyze an ERP:
+`cd` into the folder that holds your inventory `.xlsx`, then:
 
 ```bash
-python3 run.py            # macOS / Linux
-python run.py             # Windows  (or:  py run.py)
+cisco-advisory-impact-analyzer
 ```
 
-Then **paste the Cisco ERP link** when prompted, for example:
+The tool finds your inventory in that folder (if there's more than one candidate, it lists them
+and lets you pick), then **prompts for the Cisco ERP link**, for example:
 
 ```
 https://sec.cloudapps.cisco.com/security/center/viewErp.x?alertId=ERP-75736
@@ -104,9 +129,9 @@ https://sec.cloudapps.cisco.com/security/center/viewErp.x?alertId=ERP-75736
 
 (A single advisory link — `.../CiscoSecurityAdvisory/cisco-sa-...` — also works.)
 
-The tool finds all advisories, analyzes each one against your inventory, and writes a file
-named **`analysis_output_<date>_<time>.xlsx`** into the **`output`** folder (created
-automatically). Each run adds a new timestamped file, so previous reports are kept.
+After you confirm, it analyzes each advisory against your inventory and writes a file named
+**`analysis_output_<date>_<time>.xlsx`** into an **`output`** folder inside your current folder
+(created automatically). Each run adds a new timestamped file, so previous reports are kept.
 
 Press **Ctrl+C** at any time to cancel cleanly.
 
@@ -133,51 +158,37 @@ The spreadsheet has three columns:
 
 ## Keeping it up to date
 
-New releases improve the advisory-matching logic, so it's worth staying current. Update the
-tool **in place** — your API key, inventory, reports, and environment are never touched:
+New releases improve the advisory-matching logic, so it's worth staying current:
 
 ```bash
-python3 update.py          # macOS / Linux
-python update.py           # Windows
+cisco-advisory-impact-analyzer --version   # print your version; note if a newer one exists
+cisco-advisory-impact-analyzer --update    # update to the latest release via uv
 ```
 
-It checks the latest release on GitHub and, if a newer one exists, shows `current → new`,
-asks you to confirm, downloads and **verifies** the package, backs up the files it replaces,
-and applies the update (re-installing dependencies only if they changed). Your `.env`,
-`inventory/`, `output/`, and `.venv/` are left exactly as they were.
+`--update` checks the latest published release and, if newer, reinstalls the tool with `uv`
+(pinned to that release). When you start a normal run and a newer version is available, the tool
+also offers to update first — answer **yes** to update (it then asks you to re-run) or **no** to
+continue on your current version. The version check is best-effort and time-bounded, so it never
+blocks a run; skip it with `--no-update-check` or `CAIA_NO_UPDATE_CHECK=1`.
 
-Useful variations:
-
-| Command | What it does |
-| ------- | ------------ |
-| `python3 update.py` | Check, confirm, and update to the latest release. |
-| `python3 update.py --check` | Show your installed version vs the latest — change nothing. |
-| `python3 update.py --yes` | Update without the confirmation prompt (for scripts). |
-| `python3 update.py --rollback` | Undo the last update, restoring the previous version. |
-| `python3 run.py --version` | Print the version you currently have installed. |
-
-When you run the analyzer, it also does a quick, best-effort check and prints a one-line
-notice if a newer version is available. To turn that off, pass `--no-update-check` or set the
-environment variable `CAIA_NO_UPDATE_CHECK=1`.
+> On Windows, the running command can't overwrite itself while it's open. If an in-place update
+> reports the file is in use, close the terminal and run the `uv tool install … --force` command
+> it prints from a fresh shell.
 
 ---
 
-## The `.env` file and your API key
+## Configuration (your API key)
 
-Your FueliX API key lives in a small file called **`.env`** in the tool's folder. The
-installer creates this file and asks for your key, so normally you just paste the key when
-prompted. **The tool will not run without it.**
+`cisco-advisory-impact-analyzer --config` stores your settings in a per-user file, so every run
+in any folder can find them:
 
-### Getting your FueliX API key
+| OS | Config file |
+| -- | ----------- |
+| macOS | `~/Library/Application Support/cisco-advisory-impact-analyzer/config` |
+| Linux | `${XDG_CONFIG_HOME:-~/.config}/cisco-advisory-impact-analyzer/config` |
+| Windows | `%APPDATA%\cisco-advisory-impact-analyzer\config` |
 
-1. Go to **<https://dev.fuelix.ai>** and log in.
-2. You should already have a **Default** project. Click its **`...`** menu, then **View**.
-3. Under **API keys**, a key should already be listed. **Copy** it.
-4. Paste it into the installer when it asks for `FUELIX_API_KEY` (or into `.env`, below).
-
-Each person uses **their own** key — don't share keys.
-
-### What's in `.env`
+The file is `KEY=value` and looks like this (you may edit it by hand):
 
 ```
 FUELIX_API_KEY=your-key-here
@@ -185,50 +196,60 @@ FUELIX_MODEL=claude-sonnet-5
 FUELIX_BASE_URL=https://api.fuelix.ai/v1
 ```
 
-- **`FUELIX_API_KEY`** (required) — your personal key from the Dev Portal (steps above).
-- **`FUELIX_MODEL`** (optional) — the AI model to use. The default is `claude-sonnet-5`;
-  change it only if your organization has a different model id enabled.
-- **`FUELIX_BASE_URL`** (optional) — the API endpoint; leave as-is unless told otherwise.
-- Keep `.env` **private** — it contains your key. Don't commit it or share it.
+- **`FUELIX_API_KEY`** (required) — your personal key from the Dev Portal (steps below).
+- **`FUELIX_MODEL`** (optional) — chosen from a menu during `--config`; default `claude-sonnet-5`.
+- **`FUELIX_BASE_URL`** (optional) — the API endpoint; **not** prompted by `--config`. Change it
+  only by editing the file or setting the environment variable, and only if told to.
 
-If you'd rather set it up manually instead of using the installer, copy the provided
-**`.env.example`** to **`.env`** and paste your key in.
+Precedence for every setting is **environment variable → config file → built-in default**, so
+`FUELIX_API_KEY` / `FUELIX_MODEL` / `FUELIX_BASE_URL` in the environment still work for
+automation. On macOS/Linux the config file is created owner-only (`chmod 600`). Keep it private
+— it contains your key.
+
+### Getting your FueliX API key
+
+1. Go to **<https://dev.fuelix.ai>** and log in.
+2. You should already have a **Default** project. Click its **`...`** menu, then **View**.
+3. Under **API keys**, a key should already be listed. **Copy** it.
+4. Paste it when `cisco-advisory-impact-analyzer --config` asks for it.
+
+Each person uses **their own** key — don't share keys.
 
 ---
 
 ## Troubleshooting
 
-- **`python: command not found` / `'python' is not recognized`** — Python isn't installed
-  or isn't on your PATH. On macOS/Linux use `python3`; on Windows try `py` instead of
-  `python`, or reinstall Python with **“Add python.exe to PATH”** ticked.
-- **`Missing FUELIX_API_KEY`** — your `.env` has no key. Re-run `python install.py`, or
-  open `.env` and set `FUELIX_API_KEY=...`.
-- **`No inventory file found`** — put exactly one inventory `.xlsx` in the `inventory`
-  folder.
-- **`More than one inventory file found`** — the `inventory` folder has more than one
-  `.xlsx`; remove the extras so only one remains.
-- **Dependency install failed / `pip` errors** — usually a network or corporate-proxy
-  block on PyPI. Confirm you have internet access and try again; ask IT if PyPI is blocked.
+- **`cisco-advisory-impact-analyzer: command not found`** — the tool's bin directory isn't on
+  your PATH. Run `uv tool update-shell` (or restart your terminal), or check
+  `uv tool list`.
+- **`No FueliX API key is configured`** — run `cisco-advisory-impact-analyzer --config` to set
+  your key, or export `FUELIX_API_KEY`.
+- **`No valid inventory .xlsx found`** — run the tool from the folder that holds your inventory
+  `.xlsx` (sheet `FW_List`), or pass `--inventory PATH`.
+- **`--update` says uv wasn't found** — uv isn't on the tool's PATH. Re-run the
+  `uv tool install … --from git+…` command from a shell where `uv` works.
 - **Everything comes back `Indeterminate`** — either the advisories are genuinely
-  config-dependent / FMC-only, or the tool couldn't reach `sec.cloudapps.cisco.com`. Run
-  `python run.py --dry-run` to see what was downloaded without calling the AI.
+  config-dependent / FMC-only, or the tool couldn't reach `sec.cloudapps.cisco.com`. Run with
+  `--dry-run` to see what was downloaded without calling the AI.
 - **`FueliX API error` (4xx)** — check your API key is correct and that `FUELIX_MODEL` is a
   model your org has enabled (in the FueliX Dev Portal, <https://dev.fuelix.ai>).
 
 ---
 
-## Advanced options
+## Advanced / automation
 
-Extra flags can be passed through `run.py`, e.g. `python run.py --dry-run`:
+The analysis is fully flag-driven for scripting — supplying an input skips its prompt, and a
+fully-specified run has no prompts at all (no update offer, no confirmation):
 
 | Flag | Purpose |
 | ---- | ------- |
 | `--url <URL>` | supply the ERP/advisory URL instead of being prompted |
-| `--inventory <PATH>` | use a specific inventory file, bypassing the `inventory` folder |
+| `--inventory <PATH>` | use a specific inventory file, bypassing folder discovery |
 | `--sheet <NAME>` | inventory sheet name (default `FW_List`) |
-| `--output-dir <DIR>` | where to write the report (default: the `output` folder) |
+| `--output-dir <DIR>` | where to write the report (default: `./output`) |
 | `--dry-run` | run everything **without** calling the AI (no API key needed) — handy to test setup |
 | `--no-keep-temp` | delete the downloaded CSAF files when finished |
+| `--no-update-check` | skip the start-of-run version check |
 
 ---
 
@@ -237,37 +258,28 @@ Extra flags can be passed through `run.py`, e.g. `python run.py --dry-run`:
 <details>
 <summary>How it works & how to hand it out</summary>
 
-**Modules**
+**Package layout** (`cisco_advisory_impact_analyzer/`)
 
-| File | Responsibility |
-| ---- | -------------- |
-| `analyzer.py` | orchestration + interactive prompts |
+| Module | Responsibility |
+| ------ | -------------- |
+| `cli.py` | single entry point; dispatches `--help`/`--version`/`--update`/`--config` and the run |
+| `analyzer.py` | run flow + interactive prompts (working-folder inventory + `output/`) |
 | `cisco.py` | fetch ERP/CSAF, discover advisories, extract sections + affected versions |
 | `inventory.py` | read the inventory, collapse it into distinct model/type/version combos |
 | `fuelix.py` | OpenAI-compatible FueliX client + per-advisory assessment |
 | `report.py` | write the styled Excel report |
-| `install.py` / `run.py` | cross-platform installer and launcher |
+| `config.py` | per-user configuration (paths, precedence, `--config`) |
+| `version.py` | installed version, GitHub release discovery, uv-based update |
 | `ui.py` | terminal colors + prompts (no dependencies) |
 
-To keep the AI prompt small and reliable, the inventory rows are collapsed into distinct
-`(model, type, version)` combos; the AI returns which combos are impacted and the tool
-expands them back into firewall names.
+The version is single-sourced from the committed `VERSION` file into the package metadata and
+reported at runtime via `importlib.metadata`. To keep the AI prompt small and reliable, the
+inventory rows are collapsed into distinct `(model, type, version)` combos; the AI returns which
+combos are impacted and the tool expands them back into firewall names.
 
-**Handing it to teammates:** just point them at the GitHub repo — they follow the Install
-section above. Secrets and per-user data (`.env`, `.venv/`, the `inventory/` and `output/`
-folders) are excluded via `.gitignore`, so they never ship in the repo.
-Each teammate supplies their own API key and inventory.
+**Handing it to teammates:** point them at the install command above. Each teammate supplies
+their own API key (`--config`) and inventory.
 
-**Testing the installer in a clean environment:** to verify the released package installs
-end to end on a fresh machine, run the Docker-based test harness:
-
-```bash
-./tools/install-test/test-install.sh          # download latest release into a fresh container
-./tools/install-test/test-install.sh --local .  # or test the current working tree
-```
-
-It builds a disposable `python:3.9-slim` container from the released package (your local
-`.env`/`.venv`/inventory never enter it) and drops you into a shell where you run
-`python3 install.py`. See [`tools/install-test/README.md`](tools/install-test/README.md).
+**Local development:** install from a checkout with `uv tool install --from . cisco-advisory-impact-analyzer --force`, and run the tests with `python -m unittest discover -s tests`. See `CONTRIBUTING.md` for the release process.
 
 </details>

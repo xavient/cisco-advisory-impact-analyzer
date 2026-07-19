@@ -1,27 +1,34 @@
 <!--
 Sync Impact Report
 ==================
-Version change: 1.3.0 → 1.4.0
-Rationale: Added a "Versioning & releases" quality gate: the committed VERSION file is the
-           single source of truth for the product version, and the Release workflow refuses
-           to publish when the pushed git tag does not match VERSION. New materially expanded
-           guidance → MINOR bump. Note this constitution's own version is independent of the
-           product version it now governs.
+Version change: 2.0.0 → 2.1.0
+Rationale: Relaxed Principle II so that installing as a `uv` tool is the *primary, recommended*
+           distribution rather than the *sole* one: a `pip install .` from a source checkout
+           (into a virtual environment) is now a supported fallback for environments where `uv`
+           cannot be installed. This adds an allowance without removing or redefining a principle
+           (no bespoke installers return), so the bump is MINOR. The Technology & Data Constraints
+           Distribution bullet was updated to match. README and docs/index.html document the
+           no-uv path. This constitution's own version is independent of the product version.
 
-Modified principles: (none)
+Modified principles:
+  - II. Cross-Platform Parity (uv is now primary/recommended; pip-from-source added as a supported fallback)
 Added sections: (none)
 Modified sections:
-  - Development Workflow & Quality Gates (added the "Versioning & releases" gate)
+  - Technology & Data Constraints (Distribution bullet notes the pip-from-source fallback)
 Removed sections: (none)
 
 Templates requiring updates:
-  - .specify/templates/plan-template.md ✅ aligned (Constitution Check resolves gates
-    dynamically from this file — no hardcoded references to update)
+  - .specify/templates/plan-template.md ✅ aligned (Constitution Check resolves gates dynamically)
   - .specify/templates/spec-template.md ✅ aligned (no constitution references)
   - .specify/templates/tasks-template.md ✅ aligned (no constitution references)
 
 Follow-up TODOs: (none)
 
+Previous version 2.0.0 (2026-07-18): redefined Principle II for uv-tool distribution (dropped the
+install.py/run.py/.venv mandate); updated Principle V (per-user config secrets) and Technology &
+Data Constraints (uv-based updates, working-folder I/O). Enacted spec 004 (FR-024). MAJOR.
+Previous version 1.4.0 (2026-07-17): added the "Versioning & releases" quality gate — the
+committed VERSION file is the single source of truth and the Release workflow enforces tag == VERSION.
 Previous version 1.3.0 (2026-07-17): allowed the self-updater's GitHub release endpoints
 over HTTPS in Technology & Data Constraints.
 Previous version 1.2.0 (2026-07-16): expanded the Documentation quality gate to cover
@@ -50,12 +57,17 @@ for a security tool run on operators' machines.
 ### II. Cross-Platform Parity
 The tool MUST behave identically on macOS, Windows, and Linux. Code MUST NOT assume a
 specific OS, path separator, or shell; use `pathlib` and `os.name` guards rather than
-hardcoded paths. Setup and execution MUST work through the provided `install.py` /
-`run.py` entry points and the self-contained `.venv`, without requiring the user to
-activate the virtual environment manually.
+hardcoded paths. The tool's primary, recommended distribution is a `uv` tool: installation
+exposes a single `cisco-advisory-impact-analyzer` command on the user's PATH that runs from
+any working folder, without the user cloning the repository or creating or activating a
+virtual environment. For environments where `uv` cannot be installed, the tool MUST also be
+installable from a source checkout with standard Python tooling (`pip install .` into a
+virtual environment) as a supported fallback; no bespoke installer scripts are reintroduced.
+Any per-user paths (configuration, output) MUST resolve to OS-appropriate locations.
 
 Rationale: Operators run this on whatever machine they have; a determination that
-differs by platform is a correctness bug, not a cosmetic one.
+differs by platform is a correctness bug, not a cosmetic one. A single uv-installed command
+gives every platform the same install/run/update experience with no manual environment setup.
 
 ### III. CLI-First, Scriptable Interface
 Every capability MUST be reachable through the command line. The tool MUST support both
@@ -81,10 +93,12 @@ dangerous and a fabricated "Affected" erodes trust; conservative, source-anchore
 results are the only acceptable posture.
 
 ### V. Secrets Hygiene & Data Locality
-API keys and other secrets MUST live only in the untracked `.env` file and MUST NEVER be
-committed, logged, or printed. The tool MUST refuse to run when a required secret is
-missing rather than proceeding insecurely. Inventory data MUST stay local; only the
-minimum advisory and inventory context required for a determination may be sent to the
+API keys and other secrets MUST live only in the per-user configuration file (or in
+environment variables) and MUST NEVER be committed, logged, or printed. The per-user
+configuration file MUST be stored outside any working folder and, where the OS supports
+it, restricted to owner-only permissions. The tool MUST refuse to run when a required
+secret is missing rather than proceeding insecurely. Inventory data MUST stay local; only
+the minimum advisory and inventory context required for a determination may be sent to the
 FueliX AI endpoint. `.gitignore` MUST continue to exclude secrets, inventory, and
 generated reports.
 
@@ -94,20 +108,29 @@ a personal credential; leaking either is a direct harm.
 ## Technology & Data Constraints
 
 - Language/runtime: Python 3.9 or newer.
+- Distribution: the recommended path installs, runs, and updates the tool as a `uv` tool
+  (`uv tool install cisco-advisory-impact-analyzer --from git+<repo>`); `uv` is an external
+  prerequisite on the user's machine, not a bundled runtime dependency. A `pip install .` from a
+  source checkout (into a virtual environment) is a supported fallback where `uv` is unavailable;
+  `--update` is uv-specific and does not apply on that path. The product version is single-sourced
+  from the committed `VERSION` file into the package metadata at build time.
 - Source of truth: Cisco Event Response (ERP) pages and official advisory CSAF JSON
   fetched from `sec.cloudapps.cisco.com`. No scraped or cached-as-authoritative
   alternatives.
 - AI provider: FueliX (OpenAI-compatible Chat Completions endpoint) accessed over the
   standard library, using the current default model configured in `fuelix.py`.
-- Inputs/outputs: inventory is read from `inventory.xlsx` (sheet `FW_List`); reports are
-  written as timestamped `analysis_output_*.xlsx` files. Header matching MUST stay
+- Inputs/outputs: the inventory is a user-provided `.xlsx` (sheet `FW_List`) located in the
+  current working folder; reports are written as timestamped `analysis_output_*.xlsx` files
+  into an `output/` folder inside that same working folder. Header matching MUST stay
   tolerant of minor naming variation.
 - Networking: the analyzer itself contacts only `sec.cloudapps.cisco.com` (Cisco
-  ERP/CSAF) and `api.fuelix.ai` (AI). The self-updater (`update.py` / `updater.py`)
-  additionally contacts GitHub — `api.github.com`, `github.com`, and
-  `objects.githubusercontent.com` — solely to discover the latest release and download the
-  checksum-verified release package over HTTPS; it sends no inventory or secrets. Adding
-  any further external endpoint remains a reviewed change.
+  ERP/CSAF) and `api.fuelix.ai` (AI). Version and update checks additionally contact
+  GitHub — `api.github.com` and `github.com` — solely to discover the latest published
+  release; they send no inventory or secrets and MUST be best-effort and time-bounded so
+  they never block a run. Updating is delegated to `uv`, which reinstalls the tool from the
+  git source (and, like any installer, may fetch build/runtime dependencies from the Python
+  package index); the tool orchestrates this rather than overlaying files in place. Adding
+  any further external endpoint the analyzer itself contacts remains a reviewed change.
 
 ## Branching Strategy
 
@@ -135,19 +158,20 @@ constitutional compliance is enforced.
   Principle IV (conservative, traceable analysis) and Principle V (secrets/data
   handling). Any new runtime dependency MUST be explicitly justified (Principle I).
 - Documentation: the `README.md` and the GitHub Pages landing page (`docs/index.html`)
-  MUST stay accurate for install and run steps whenever those flows change. Their
-  installation instructions MUST remain consistent with each other and with the code —
-  including the `inventory/` and `output/` folder conventions and where files are placed
-  or written. A change to the instructions in one MUST be mirrored in the other within the
-  same pull request.
+  MUST stay accurate for the uv install, run, update, and configuration steps whenever
+  those flows change. Their instructions MUST remain consistent with each other and with
+  the code — including the working-folder inventory and `output/` conventions and where
+  files are read and written. A change to the instructions in one MUST be mirrored in the
+  other within the same pull request.
 - Versioning & releases: the committed `VERSION` file is the single source of truth for the
   product version and MUST follow semantic versioning. A release is cut by pushing a git tag
-  equal to the current `VERSION`; the Release workflow MUST refuse to publish when the pushed
-  tag does not match `VERSION`, so the committed version, the git tag, and the packaged
-  version never drift. Bumping `VERSION` is an ordinary change that reaches `main` through a
-  pull request (see Branching Strategy), and the tag is pushed only after that PR merges. This
-  product version is independent of this constitution's own version. See `CONTRIBUTING.md` for
-  the release runbook.
+  equal to the current `VERSION` and publishing a matching GitHub Release; the Release workflow
+  MUST refuse to publish when the pushed tag does not match `VERSION`. The product version is
+  single-sourced from `VERSION` into the package metadata at build time, so the committed
+  version, the git tag, and the version the installed tool reports never drift. Bumping
+  `VERSION` is an ordinary change that reaches `main` through a pull request (see Branching
+  Strategy), and the tag is pushed only after that PR merges. This product version is
+  independent of this constitution's own version. See `CONTRIBUTING.md` for the release runbook.
 
 ## Governance
 
@@ -166,4 +190,4 @@ Compliance is verified at review time. Dependent Spec Kit artifacts (plan, spec,
 tasks templates and their generated documents) MUST remain consistent with the principles
 above; the Constitution Check in the planning workflow enforces this on each feature.
 
-**Version**: 1.4.0 | **Ratified**: 2026-07-14 | **Last Amended**: 2026-07-17
+**Version**: 2.1.0 | **Ratified**: 2026-07-14 | **Last Amended**: 2026-07-18
