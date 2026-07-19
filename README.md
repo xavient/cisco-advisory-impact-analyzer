@@ -19,7 +19,7 @@ Windows, and Linux**.
 
 | # | Requirement | How to get it |
 | - | ----------- | ------------- |
-| 1 | **uv** | Install once — see <https://docs.astral.sh/uv/getting-started/installation/>. uv manages Python for you, so you don't need to install Python separately. |
+| 1 | **uv** (recommended) — or just **Python 3.9+** | Install uv once from <https://docs.astral.sh/uv/getting-started/installation/> (it manages Python for you). Can't install uv? See [Install without uv](#install-without-uv-python-only) — you only need Python. |
 | 2 | **A FueliX API key** | Get yours from <https://dev.fuelix.ai> — each person needs their own (steps below). |
 | 3 | **Your firewall inventory** as an Excel `.xlsx` file in the folder you run from | You build this yourself (format below). |
 | 4 | **Internet access** to `sec.cloudapps.cisco.com` and `api.fuelix.ai` | Usually already available; corporate proxies can block these. |
@@ -63,6 +63,52 @@ cisco-advisory-impact-analyzer --config
 `--config` asks for your API key (typing is hidden) and lets you pick the AI model from a short
 list (default `claude-sonnet-5`). The values are saved to a per-user config file — see
 [Configuration](#configuration-your-api-key) below.
+
+---
+
+## Install without uv (Python only)
+
+If you **can't install uv** (e.g. a locked-down machine), you can install and run the tool with
+just **Python 3.9 or newer** — the `venv` and `pip` modules that ship with Python. No admin
+rights and no extra tools are needed.
+
+**1. Get the code.** On the GitHub page, click the green **`Code`** button → **Download ZIP**,
+and unzip it. (Or `git clone` the repo.) Open a terminal **inside** the unzipped folder.
+
+**2. Create an isolated environment and install the tool into it:**
+
+macOS / Linux:
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install .
+```
+
+Windows (PowerShell):
+
+```powershell
+py -m venv .venv
+.venv\Scripts\Activate.ps1
+py -m pip install .
+```
+
+This installs the `cisco-advisory-impact-analyzer` command **inside that environment**. From then
+on it behaves exactly like the uv install — use it as described in [Run it](#run-it) and
+[Configuration](#configuration-your-api-key) (`cisco-advisory-impact-analyzer --config`, then
+`cisco-advisory-impact-analyzer` from your inventory folder).
+
+**Notes for this path:**
+
+- **Activate first, every session.** In each new terminal, re-run the activation command
+  (`source .venv/bin/activate` on macOS/Linux, `.venv\Scripts\Activate.ps1` on Windows) before
+  using the command. If you don't want to activate, call it by full path — e.g.
+  `.venv/bin/cisco-advisory-impact-analyzer` — or run `python -m cisco_advisory_impact_analyzer.cli`.
+- **Updating is manual here.** `--update` is uv-specific and will report that uv wasn't found. To
+  update, download the newer ZIP and re-run `python -m pip install .` in your environment. Pass
+  `--no-update-check` to skip the start-of-run version check.
+- Everything else — `--config`, inventory discovery, the `output/` folder, `--dry-run`, and the
+  analysis itself — works identically to the uv install.
 
 ---
 

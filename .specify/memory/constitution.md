@@ -1,38 +1,32 @@
 <!--
 Sync Impact Report
 ==================
-Version change: 1.4.0 → 2.0.0
-Rationale: Redefined Principle II (Cross-Platform Parity) to require distribution and execution
-           as a `uv` tool and to drop the mandate that setup/execution go through `install.py` /
-           `run.py` and a self-contained `.venv`. Because this is a backward-incompatible
-           redefinition of a principle (the old clone + install.py/run.py/.venv flow is retired),
-           the bump is MAJOR. Principle V and the Technology & Data Constraints were updated to
-           match: secrets move from a repo `.env` file to a per-user configuration file; updates
-           are delegated to `uv` instead of the in-repo self-updater; and inventory/output are
-           relative to the working folder. Enacts spec 004 (uv Tool Distribution), FR-024. This
-           constitution's own version is independent of the product version it governs.
+Version change: 2.0.0 → 2.1.0
+Rationale: Relaxed Principle II so that installing as a `uv` tool is the *primary, recommended*
+           distribution rather than the *sole* one: a `pip install .` from a source checkout
+           (into a virtual environment) is now a supported fallback for environments where `uv`
+           cannot be installed. This adds an allowance without removing or redefining a principle
+           (no bespoke installers return), so the bump is MINOR. The Technology & Data Constraints
+           Distribution bullet was updated to match. README and docs/index.html document the
+           no-uv path. This constitution's own version is independent of the product version.
 
 Modified principles:
-  - II. Cross-Platform Parity (redefined: uv-tool distribution; removed install.py/run.py/.venv mandate)
-  - V. Secrets Hygiene & Data Locality (secrets live in the per-user config file / env vars, not repo `.env`)
+  - II. Cross-Platform Parity (uv is now primary/recommended; pip-from-source added as a supported fallback)
 Added sections: (none)
 Modified sections:
-  - Technology & Data Constraints (added uv distribution; working-folder inputs/outputs;
-    uv-based update networking replacing the in-repo self-updater)
-  - Development Workflow & Quality Gates (Documentation and Versioning & releases gates updated for uv)
+  - Technology & Data Constraints (Distribution bullet notes the pip-from-source fallback)
 Removed sections: (none)
 
 Templates requiring updates:
-  - .specify/templates/plan-template.md ✅ aligned (Constitution Check resolves gates
-    dynamically from this file — no hardcoded references to update)
+  - .specify/templates/plan-template.md ✅ aligned (Constitution Check resolves gates dynamically)
   - .specify/templates/spec-template.md ✅ aligned (no constitution references)
   - .specify/templates/tasks-template.md ✅ aligned (no constitution references)
 
-Follow-up TODOs (delivered by spec 004 implementation — code/doc changes, not constitution edits):
-  - README.md ⚠ pending — rewrite for the uv install/run/update/config flow (spec 004 task T031)
-  - docs/index.html ⚠ pending — mirror the README uv flow (spec 004 task T032)
-  - CONTRIBUTING.md ⚠ pending — release runbook drops zip/checksum packaging (spec 004 task T033)
+Follow-up TODOs: (none)
 
+Previous version 2.0.0 (2026-07-18): redefined Principle II for uv-tool distribution (dropped the
+install.py/run.py/.venv mandate); updated Principle V (per-user config secrets) and Technology &
+Data Constraints (uv-based updates, working-folder I/O). Enacted spec 004 (FR-024). MAJOR.
 Previous version 1.4.0 (2026-07-17): added the "Versioning & releases" quality gate — the
 committed VERSION file is the single source of truth and the Release workflow enforces tag == VERSION.
 Previous version 1.3.0 (2026-07-17): allowed the self-updater's GitHub release endpoints
@@ -63,11 +57,13 @@ for a security tool run on operators' machines.
 ### II. Cross-Platform Parity
 The tool MUST behave identically on macOS, Windows, and Linux. Code MUST NOT assume a
 specific OS, path separator, or shell; use `pathlib` and `os.name` guards rather than
-hardcoded paths. The tool MUST be distributed, run, and updated as a `uv` tool:
-installation exposes a single `cisco-advisory-impact-analyzer` command on the user's PATH
-that runs from any working folder, without the user cloning the repository or creating or
-activating a virtual environment. Any per-user paths (configuration, output) MUST resolve
-to OS-appropriate locations.
+hardcoded paths. The tool's primary, recommended distribution is a `uv` tool: installation
+exposes a single `cisco-advisory-impact-analyzer` command on the user's PATH that runs from
+any working folder, without the user cloning the repository or creating or activating a
+virtual environment. For environments where `uv` cannot be installed, the tool MUST also be
+installable from a source checkout with standard Python tooling (`pip install .` into a
+virtual environment) as a supported fallback; no bespoke installer scripts are reintroduced.
+Any per-user paths (configuration, output) MUST resolve to OS-appropriate locations.
 
 Rationale: Operators run this on whatever machine they have; a determination that
 differs by platform is a correctness bug, not a cosmetic one. A single uv-installed command
@@ -112,10 +108,12 @@ a personal credential; leaking either is a direct harm.
 ## Technology & Data Constraints
 
 - Language/runtime: Python 3.9 or newer.
-- Distribution: the tool is installed, run, and updated as a `uv` tool
+- Distribution: the recommended path installs, runs, and updates the tool as a `uv` tool
   (`uv tool install cisco-advisory-impact-analyzer --from git+<repo>`); `uv` is an external
-  prerequisite on the user's machine, not a bundled runtime dependency. The product version is
-  single-sourced from the committed `VERSION` file into the package metadata at build time.
+  prerequisite on the user's machine, not a bundled runtime dependency. A `pip install .` from a
+  source checkout (into a virtual environment) is a supported fallback where `uv` is unavailable;
+  `--update` is uv-specific and does not apply on that path. The product version is single-sourced
+  from the committed `VERSION` file into the package metadata at build time.
 - Source of truth: Cisco Event Response (ERP) pages and official advisory CSAF JSON
   fetched from `sec.cloudapps.cisco.com`. No scraped or cached-as-authoritative
   alternatives.
@@ -192,4 +190,4 @@ Compliance is verified at review time. Dependent Spec Kit artifacts (plan, spec,
 tasks templates and their generated documents) MUST remain consistent with the principles
 above; the Constitution Check in the planning workflow enforces this on each feature.
 
-**Version**: 2.0.0 | **Ratified**: 2026-07-14 | **Last Amended**: 2026-07-18
+**Version**: 2.1.0 | **Ratified**: 2026-07-14 | **Last Amended**: 2026-07-18
