@@ -79,7 +79,7 @@ export PATH="$HOME/.local/bin:$PATH"
 uv --version
 
 echo "== uv tool install (the documented command) =="
-uv tool install cisco-advisory-impact-analyzer --from "$INSTALL_FROM"
+uv tool install cisco-advisory-impact-agent --from "$INSTALL_FROM"
 
 echo "== command is on PATH =="
 command -v caia

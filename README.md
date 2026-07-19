@@ -54,7 +54,7 @@ run the tool from; the report is written to an `output/` folder next to it.
 With `uv` on your machine, install the tool straight from GitHub:
 
 ```bash
-uv tool install cisco-advisory-impact-analyzer \
+uv tool install cisco-advisory-impact-agent \
   --from git+https://github.com/xavient/cisco-advisory-impact-analyzer
 ```
 
@@ -291,6 +291,6 @@ combos are impacted and the tool expands them back into firewall names.
 **Handing it to teammates:** point them at the install command above. Each teammate supplies
 their own API key (`--config`) and inventory.
 
-**Local development:** install from a checkout with `uv tool install --from . cisco-advisory-impact-analyzer --force`, and run the tests with `python -m unittest discover -s tests`. See `CONTRIBUTING.md` for the release process.
+**Local development:** install from a checkout with `uv tool install --from . cisco-advisory-impact-agent --force`, and run the tests with `python -m unittest discover -s tests`. See `CONTRIBUTING.md` for the release process.
 
 </details>
