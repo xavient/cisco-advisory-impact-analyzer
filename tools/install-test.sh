@@ -117,7 +117,9 @@ echo
 echo "ALL CHECKS PASSED"
 '
 
-docker run --rm "${MOUNT_ARGS[@]}" -e INSTALL_FROM="$INSTALL_FROM" \
+# The ${arr[@]+"${arr[@]}"} guard keeps an empty MOUNT_ARGS (git mode) from tripping `set -u`
+# on bash 3.2 (macOS's default).
+docker run --rm ${MOUNT_ARGS[@]+"${MOUNT_ARGS[@]}"} -e INSTALL_FROM="$INSTALL_FROM" \
   "$IMAGE" bash -c "$CONTAINER_SCRIPT"
 
 echo
