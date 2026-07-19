@@ -1,6 +1,6 @@
-"""Single command-line entry point for the Cisco Advisory Impact Analyzer.
+"""Single command-line entry point for the Cisco Advisory Impact Agent.
 
-Installed as the `cisco-advisory-impact-analyzer` console script (see pyproject.toml). Dispatches
+Installed as the `caia` console script (see pyproject.toml). Dispatches
 `--help`/`--version`/`--update`/`--config` and, with no mode flag, the interactive/flag-driven
 analysis run. Ctrl+C anywhere exits 130 with no traceback (Constitution III, FR-012).
 """
@@ -11,12 +11,12 @@ import argparse
 import os
 import sys
 
-from cisco_advisory_impact_analyzer import analyzer, config, ui, version
+from cisco_advisory_impact_agent import analyzer, config, ui, version
 
 
 def build_parser():
     ap = argparse.ArgumentParser(
-        prog="cisco-advisory-impact-analyzer",
+        prog="caia",
         description="AI-driven analysis of which firewalls in your inventory are impacted "
                     "by a Cisco security advisory.",
     )
@@ -64,7 +64,7 @@ def cmd_version():
     newer = version.passive_check(timeout=2)  # best-effort, ~2s bound (FR-006, SC-008)
     if newer:
         ui.info(f"A newer version ({ui.bold(newer)}) is available. "
-                "Update with: " + ui.bold("cisco-advisory-impact-analyzer --update"))
+                "Update with: " + ui.bold("caia --update"))
     return 0
 
 
@@ -96,7 +96,7 @@ def cmd_update():
         ui.fail(f"Update failed: {e}")
         return 4
     ui.ok(f"Updated to {ui.bold(tag)}. "
-          "Run " + ui.bold("cisco-advisory-impact-analyzer") + " again to use it.")
+          "Run " + ui.bold("caia") + " again to use it.")
     return 0
 
 
@@ -128,7 +128,7 @@ def _start_of_run_update_nudge(args):
         ui.warn("Continuing with the current version.")
         return
     ui.ok(f"Updated to {ui.bold(newer)}. "
-          "Please re-run " + ui.bold("cisco-advisory-impact-analyzer") + " to use the new version.")
+          "Please re-run " + ui.bold("caia") + " to use the new version.")
     raise SystemExit(0)
 
 
@@ -143,6 +143,7 @@ def cmd_run(args):
 def main(argv=None):
     """Console-script entry point. Returns a process exit code."""
     try:
+        ui.banner()  # splash shown once per invocation (interactive TTY only; see CAIA_NO_BANNER)
         return _dispatch(argv)
     except KeyboardInterrupt:
         print()

@@ -38,7 +38,7 @@ Previous version 1.0.0 (2026-07-14): initial ratification â€” Core Principles Iâ
 Technology & Data Constraints, Development Workflow & Quality Gates, Governance.
 -->
 
-# Cisco Advisory Impact Analyzer Constitution
+# Cisco Advisory Impact Agent Constitution
 
 ## Core Principles
 
@@ -175,7 +175,7 @@ constitutional compliance is enforced.
 
 ## Governance
 
-This constitution supersedes ad-hoc practice for the Cisco Advisory Impact Analyzer. All
+This constitution supersedes ad-hoc practice for the Cisco Advisory Impact Agent. All
 changes MUST comply with the Core Principles; when a change cannot, the reviewer MUST
 require either a compliant alternative or an explicit, documented justification recorded
 in the pull request.

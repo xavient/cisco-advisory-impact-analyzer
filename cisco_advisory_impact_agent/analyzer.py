@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
 """
-Cisco Advisory Impact Analyzer (AI-driven)
-==========================================
+Cisco Advisory Impact Agent (AI-driven)
+=======================================
 Given a Cisco Event Response (ERP) URL, find every referenced security advisory,
 download its CSAF, extract the "Vulnerable Products" / "Products Confirmed Not
 Vulnerable" sections plus the enumerated affected releases, and ask the FueliX AI
 which firewalls in your inventory are impacted. Writes a timestamped Excel report.
 
 This module holds the analysis run flow; the command-line entry point is
-`cisco_advisory_impact_analyzer.cli`. Inputs are read from, and the report is written
+`cisco_advisory_impact_agent.cli`. Inputs are read from, and the report is written
 to, the current working folder (an `output/` subfolder), so the tool works from any
 folder once installed.
 """
@@ -21,10 +21,10 @@ import tempfile
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
-from cisco_advisory_impact_analyzer import cisco, config, fuelix
-from cisco_advisory_impact_analyzer import inventory as inv
-from cisco_advisory_impact_analyzer import ui
-from cisco_advisory_impact_analyzer.report import write_report
+from cisco_advisory_impact_agent import cisco, config, fuelix
+from cisco_advisory_impact_agent import inventory as inv
+from cisco_advisory_impact_agent import ui
+from cisco_advisory_impact_agent.report import write_report
 
 CISCO_HOST = "sec.cloudapps.cisco.com"
 
@@ -221,7 +221,7 @@ def run(args):
     # 1. API key check (skipped for dry-run so the pipeline can be tested offline).
     if not args.dry_run and not api_key:
         die("No FueliX API key is configured.",
-            hint="Run 'cisco-advisory-impact-analyzer --config' to set your FueliX API key.")
+            hint="Run 'caia --config' to set your FueliX API key.")
 
     # 2. Inventory (discover in the working folder or let the user pick).
     inv_path = resolve_inventory(args.inventory, interactive, sheet=args.sheet)

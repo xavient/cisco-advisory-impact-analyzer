@@ -13,11 +13,13 @@ Conventions used across the app:
 from __future__ import annotations
 
 import os
+import shutil
 import sys
 
 RESET = "\033[0m"
 BOLD = "\033[1m"
 DIM = "\033[2m"
+ITALIC = "\033[3m"
 _FG = {
     "red": "\033[31m",
     "green": "\033[32m",
@@ -154,6 +156,73 @@ def system(msg):
 
 def plain(msg=""):
     print(msg)
+
+
+# Splash banner --------------------------------------------------------------- #
+# Block-letter glyphs for the `CAIA` wordmark (each 5 rows, fixed width per letter).
+_GLYPHS = {
+    "C": [" █████ ", "██     ", "██     ", "██     ", " █████ "],
+    "A": [" █████ ", "██   ██", "███████", "██   ██", "██   ██"],
+    "I": ["██", "██", "██", "██", "██"],
+}
+# 256-colour gradient painted across the four letters (green → teal → blue → purple).
+_GRADIENT = [46, 44, 39, 129]
+_WORDMARK = "CAIA"
+_NAME = "Cisco Advisory Impact Agent"
+_SLOGAN = "Agentic firewall impact analysis for Cisco security advisories · TELUS Digital"
+
+
+def _c256(code, text):
+    """Foreground a run of text with a 256-colour code (caller ensures colour is enabled)."""
+    return f"\033[38;5;{code}m" + text + RESET
+
+
+def banner_enabled():
+    """Show the splash only on an interactive terminal, unless CAIA_NO_BANNER is set."""
+    if os.environ.get("CAIA_NO_BANNER"):
+        return False
+    try:
+        return sys.stdout.isatty()
+    except Exception:  # noqa: BLE001
+        return False
+
+
+def banner_text():
+    """Build the splash (wordmark + name + slogan), centred to the terminal width.
+
+    Colour follows `enabled()`; padding is computed from the visible (uncoloured) width so
+    the embedded ANSI codes never skew the centering.
+    """
+    color = enabled()
+    rows = ["" for _ in range(5)]
+    plain_rows = ["" for _ in range(5)]
+    gap = "  "
+    for i, ch in enumerate(_WORDMARK):
+        glyph = _GLYPHS[ch]
+        sep = gap if i < len(_WORDMARK) - 1 else ""
+        shade = _GRADIENT[i % len(_GRADIENT)]
+        for r in range(5):
+            seg = glyph[r]
+            plain_rows[r] += seg + sep
+            rows[r] += (_c256(shade, seg) if color else seg) + sep
+    width = shutil.get_terminal_size((80, 24)).columns
+    art_w = max(len(p) for p in plain_rows)
+    lead = " " * max(0, (width - art_w) // 2)
+    lines = [""]
+    lines += [lead + row for row in rows]
+    lines.append("")
+    name_pad = " " * max(0, (width - len(_NAME)) // 2)
+    slogan_pad = " " * max(0, (width - len(_SLOGAN)) // 2)
+    lines.append(name_pad + (paint(_NAME, BOLD, _FG["cyan"]) if color else _NAME))
+    lines.append(slogan_pad + (paint(_SLOGAN, ITALIC, _FG["yellow"]) if color else _SLOGAN))
+    lines.append("")
+    return "\n".join(lines)
+
+
+def banner():
+    """Print the splash screen. No-op unless attached to an interactive terminal."""
+    if banner_enabled():
+        print(banner_text())
 
 
 # Prompts --------------------------------------------------------------------- #

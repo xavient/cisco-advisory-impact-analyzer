@@ -22,8 +22,8 @@ from unittest import mock
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from cisco_advisory_impact_analyzer import analyzer, ui  # noqa: E402
-from cisco_advisory_impact_analyzer import report  # noqa: E402
+from cisco_advisory_impact_agent import analyzer, ui  # noqa: E402
+from cisco_advisory_impact_agent import report  # noqa: E402
 
 
 def _make_inventory(path, rows=1):

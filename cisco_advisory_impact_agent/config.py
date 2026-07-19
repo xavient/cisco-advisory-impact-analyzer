@@ -12,9 +12,9 @@ import os
 import sys
 from pathlib import Path
 
-from cisco_advisory_impact_analyzer import fuelix, ui
+from cisco_advisory_impact_agent import fuelix, ui
 
-APP_DIR_NAME = "cisco-advisory-impact-analyzer"
+APP_DIR_NAME = "caia"
 CONFIG_FILE_NAME = "config"
 
 # Keys managed here, mirroring the environment-variable names the app already honors.
@@ -78,8 +78,8 @@ def save(values):
     path = config_path()
 
     lines = [
-        "# Cisco Advisory Impact Analyzer configuration.",
-        "# Managed by `cisco-advisory-impact-analyzer --config`; you may edit values by hand.",
+        "# Cisco Advisory Impact Agent configuration.",
+        "# Managed by `caia --config`; you may edit values by hand.",
         "# Environment variables (FUELIX_API_KEY / FUELIX_MODEL / FUELIX_BASE_URL) override these.",
     ]
     for key in KEYS:
@@ -150,7 +150,7 @@ def load_local_env():
 def run_config():
     """Interactively set the API key and model; persist to the per-user config file (FR-008..011)."""
     existing = load_file()
-    ui.title("Configure Cisco Advisory Impact Analyzer")
+    ui.title("Configure Cisco Advisory Impact Agent")
 
     # API key (secret). Empty input keeps the existing value.
     if existing.get(API_KEY):

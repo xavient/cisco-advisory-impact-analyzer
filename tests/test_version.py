@@ -15,7 +15,7 @@ from unittest import mock
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from cisco_advisory_impact_analyzer import version  # noqa: E402
+from cisco_advisory_impact_agent import version  # noqa: E402
 
 
 class ParseVersionTests(unittest.TestCase):

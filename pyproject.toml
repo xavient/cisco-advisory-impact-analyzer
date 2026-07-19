@@ -4,11 +4,11 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "cisco-advisory-impact-analyzer"
-description = "AI-driven analysis of which firewalls in your inventory are impacted by a Cisco security advisory."
+description = "Agentic firewall impact analysis for Cisco security advisories"
 readme = "README.md"
 requires-python = ">=3.9"
 license = "MIT"
-authors = [{ name = "Xavient" }]
+authors = [{ name = "TELUS Digital" }]
 keywords = ["cisco", "security", "advisory", "firewall", "csaf", "vulnerability"]
 dependencies = [
     "openpyxl>=3.1",
@@ -17,7 +17,7 @@ dependencies = [
 dynamic = ["version"]
 
 [project.scripts]
-cisco-advisory-impact-analyzer = "cisco_advisory_impact_analyzer.cli:main"
+caia = "cisco_advisory_impact_agent.cli:main"
 
 [project.urls]
 Homepage = "https://github.com/xavient/cisco-advisory-impact-analyzer"
@@ -31,4 +31,4 @@ Repository = "https://github.com/xavient/cisco-advisory-impact-analyzer"
 version = { file = "VERSION" }
 
 [tool.setuptools]
-packages = ["cisco_advisory_impact_analyzer"]
+packages = ["cisco_advisory_impact_agent"]

@@ -82,13 +82,13 @@ echo "== uv tool install (the documented command) =="
 uv tool install cisco-advisory-impact-analyzer --from "$INSTALL_FROM"
 
 echo "== command is on PATH =="
-command -v cisco-advisory-impact-analyzer
+command -v caia
 
 echo "== --version =="
-cisco-advisory-impact-analyzer --version
+caia --version
 
 echo "== --help =="
-cisco-advisory-impact-analyzer --help >/dev/null && echo "help OK"
+caia --help >/dev/null && echo "help OK"
 
 echo "== prepare a working folder with a valid inventory =="
 mkdir -p /work && cd /work
@@ -104,13 +104,13 @@ PY
 URL="https://sec.cloudapps.cisco.com/security/center/content/CiscoSecurityAdvisory/cisco-sa-test-abcd1234"
 
 echo "== API-key gate: a real run with no key must exit non-zero and name --config =="
-if cisco-advisory-impact-analyzer --url "$URL" --inventory inv.xlsx --no-update-check; then
+if caia --url "$URL" --inventory inv.xlsx --no-update-check; then
   echo "FAIL: expected a non-zero exit when no API key is configured"; exit 1
 fi
 echo "key gate OK (exited non-zero)"
 
 echo "== dry-run writes a report into ./output =="
-cisco-advisory-impact-analyzer --dry-run --url "$URL" --inventory inv.xlsx --no-update-check
+caia --dry-run --url "$URL" --inventory inv.xlsx --no-update-check
 ls output/analysis_output_*.xlsx >/dev/null 2>&1 && echo "report written OK" || { echo "FAIL: no report"; exit 1; }
 
 echo
