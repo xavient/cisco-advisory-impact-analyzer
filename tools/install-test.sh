@@ -20,7 +20,7 @@
 # network to fetch uv and (for --git) clone the repo.
 set -euo pipefail
 
-REPO_URL="https://github.com/xavient/cisco-advisory-impact-analyzer"
+REPO_URL="https://github.com/xavient/cisco-advisory-impact-agent"
 IMAGE="python:3.9-slim"   # 3.9 is the minimum supported Python — install on the floor
 MODE="local"
 GIT_REF=""

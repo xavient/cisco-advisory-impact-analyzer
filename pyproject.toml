@@ -20,8 +20,8 @@ dynamic = ["version"]
 caia = "cisco_advisory_impact_agent.cli:main"
 
 [project.urls]
-Homepage = "https://github.com/xavient/cisco-advisory-impact-analyzer"
-Repository = "https://github.com/xavient/cisco-advisory-impact-analyzer"
+Homepage = "https://github.com/xavient/cisco-advisory-impact-agent"
+Repository = "https://github.com/xavient/cisco-advisory-impact-agent"
 
 # The committed VERSION file is the single source of truth for the product version
 # (constitution "Versioning & releases" gate). setuptools reads its raw contents here and
