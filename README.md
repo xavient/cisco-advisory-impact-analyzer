@@ -55,7 +55,7 @@ With `uv` on your machine, install the tool straight from GitHub:
 
 ```bash
 uv tool install cisco-advisory-impact-agent \
-  --from git+https://github.com/xavient/cisco-advisory-impact-analyzer
+  --from git+https://github.com/xavient/cisco-advisory-impact-agent
 ```
 
 This puts a single **`caia`** command on your PATH. There is no

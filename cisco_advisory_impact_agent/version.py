@@ -19,7 +19,7 @@ from importlib.metadata import PackageNotFoundError, version as _dist_version
 from pathlib import Path
 
 DIST_NAME = "cisco-advisory-impact-agent"
-DEFAULT_REPO = "xavient/cisco-advisory-impact-analyzer"  # GitHub repo name (URL) is unchanged
+DEFAULT_REPO = "xavient/cisco-advisory-impact-agent"  # owner/name of the GitHub repo for release + version checks
 UA = {"User-Agent": "cisco-advisory-impact-agent"}
 
 # VERSION lives at the repo root, one level above this package (used only for source-tree runs).

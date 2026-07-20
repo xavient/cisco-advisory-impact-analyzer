@@ -58,7 +58,7 @@ for a security tool run on operators' machines.
 The tool MUST behave identically on macOS, Windows, and Linux. Code MUST NOT assume a
 specific OS, path separator, or shell; use `pathlib` and `os.name` guards rather than
 hardcoded paths. The tool's primary, recommended distribution is a `uv` tool: installation
-exposes a single `cisco-advisory-impact-analyzer` command on the user's PATH that runs from
+exposes a single `caia` command on the user's PATH that runs from
 any working folder, without the user cloning the repository or creating or activating a
 virtual environment. For environments where `uv` cannot be installed, the tool MUST also be
 installable from a source checkout with standard Python tooling (`pip install .` into a
@@ -109,7 +109,7 @@ a personal credential; leaking either is a direct harm.
 
 - Language/runtime: Python 3.9 or newer.
 - Distribution: the recommended path installs, runs, and updates the tool as a `uv` tool
-  (`uv tool install cisco-advisory-impact-analyzer --from git+<repo>`); `uv` is an external
+  (`uv tool install cisco-advisory-impact-agent --from git+<repo>`); `uv` is an external
   prerequisite on the user's machine, not a bundled runtime dependency. A `pip install .` from a
   source checkout (into a virtual environment) is a supported fallback where `uv` is unavailable;
   `--update` is uv-specific and does not apply on that path. The product version is single-sourced
