@@ -30,6 +30,10 @@ class UpdateError(Exception):
     """A `--update` could not be completed; the installed version is left working."""
 
 
+class UninstallError(Exception):
+    """A `--uninstall` could not be completed; the installed tool is left as-is."""
+
+
 # --------------------------------------------------------------------------- #
 # Installed version
 # --------------------------------------------------------------------------- #
@@ -248,4 +252,89 @@ def perform_update(tag):
     if proc.returncode != 0:
         raise UpdateError(
             f"uv exited with code {proc.returncode}; your current version is unchanged.\n"
+            "If you are on Windows, close this command and run:\n    " + manual)
+
+
+# --------------------------------------------------------------------------- #
+# uv-based uninstall
+# --------------------------------------------------------------------------- #
+# InstallKind — how this tool is currently installed, decided before `--uninstall` acts.
+UV_MANAGED = "uv_managed"          # installed as a uv tool -> removable via uv
+NOT_INSTALLED = "not_installed"    # no distribution metadata -> running from a source tree
+PIP_OR_SOURCE = "pip_or_source"    # a distribution, but not a uv tool (e.g. `pip install .`)
+UNKNOWN_UV_ABSENT = "unknown_uv_absent"  # a distribution present, but uv cannot be located
+
+
+def _distribution_installed():
+    """True if this tool is installed as a distribution (not merely an uninstalled source tree).
+
+    Distinct from `read_installed_version()`, which falls back to the committed VERSION file and so
+    reports a version even when nothing is installed.
+    """
+    try:
+        _dist_version(DIST_NAME)
+        return True
+    except PackageNotFoundError:
+        return False
+
+
+def uv_tool_list_names(uv_path):
+    """Return the set of installed uv tool (distribution) names, or an empty set on any failure.
+
+    Parses `uv tool list`, whose output lists each tool as a top-level line (`name vX.Y.Z`)
+    followed by indented/`- `-prefixed entry-point lines. Only the top-level names are collected.
+    Never raises — a probe failure is treated as "no uv tools".
+    """
+    try:
+        proc = subprocess.run([uv_path, "tool", "list"], capture_output=True, text=True)
+    except OSError:
+        return set()
+    if proc.returncode != 0:
+        return set()
+    names = set()
+    for line in proc.stdout.splitlines():
+        if not line or line[0].isspace() or line.lstrip().startswith("-"):
+            continue
+        parts = line.split()
+        if parts:
+            names.add(parts[0])
+    return names
+
+
+def classify_uninstall(uv_path=None):
+    """Classify how this tool is installed, to decide how `--uninstall` should behave.
+
+    Returns one of UV_MANAGED / NOT_INSTALLED / PIP_OR_SOURCE / UNKNOWN_UV_ABSENT. Detection is
+    performed before any prompt so the command never prompts in a state where it cannot act.
+    """
+    if not _distribution_installed():
+        return NOT_INSTALLED
+    uv = uv_path or find_uv()
+    if not uv:
+        return UNKNOWN_UV_ABSENT
+    if DIST_NAME in uv_tool_list_names(uv):
+        return UV_MANAGED
+    return PIP_OR_SOURCE
+
+
+def perform_uninstall(uv_path=None):
+    """Remove the uv-installed tool. Raises UninstallError on any failure.
+
+    On Windows the running command shim can be file-locked, so an in-place uninstall while this
+    process is alive can fail; the raised message then points the user at the exact command to run
+    from a fresh shell (mirroring `perform_update`).
+    """
+    uv = uv_path or find_uv()
+    manual = f"uv tool uninstall {DIST_NAME}"
+    if not uv:
+        raise UninstallError(
+            "uv was not found on PATH. Uninstall manually with:\n    " + manual)
+    cmd = [uv, "tool", "uninstall", DIST_NAME]
+    try:
+        proc = subprocess.run(cmd)
+    except OSError as e:
+        raise UninstallError(f"could not run uv ({e}). Uninstall manually with:\n    " + manual)
+    if proc.returncode != 0:
+        raise UninstallError(
+            f"uv exited with code {proc.returncode}; the tool may not be fully removed.\n"
             "If you are on Windows, close this command and run:\n    " + manual)

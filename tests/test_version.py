@@ -90,5 +90,94 @@ class GitSourceTests(unittest.TestCase):
         self.assertFalse(version.git_source().endswith("@None"))
 
 
+class _Proc:
+    """Minimal stand-in for a completed subprocess result."""
+
+    def __init__(self, returncode=0, stdout=""):
+        self.returncode = returncode
+        self.stdout = stdout
+
+
+class UvToolListNamesTests(unittest.TestCase):
+    _LISTING = (
+        "cisco-advisory-impact-agent v1.2.3\n"
+        "- caia\n"
+        "ruff v0.4.0\n"
+        "- ruff\n"
+    )
+
+    def test_parses_top_level_names_only(self):
+        with mock.patch.object(version.subprocess, "run", return_value=_Proc(0, self._LISTING)):
+            names = version.uv_tool_list_names("/usr/bin/uv")
+        self.assertEqual(names, {"cisco-advisory-impact-agent", "ruff"})
+
+    def test_nonzero_returns_empty(self):
+        with mock.patch.object(version.subprocess, "run", return_value=_Proc(1, "boom")):
+            self.assertEqual(version.uv_tool_list_names("/usr/bin/uv"), set())
+
+    def test_oserror_returns_empty(self):
+        with mock.patch.object(version.subprocess, "run", side_effect=OSError("nope")):
+            self.assertEqual(version.uv_tool_list_names("/usr/bin/uv"), set())
+
+
+class ClassifyUninstallTests(unittest.TestCase):
+    def test_not_installed_when_no_distribution(self):
+        with mock.patch.object(version, "_distribution_installed", return_value=False):
+            self.assertEqual(version.classify_uninstall(), version.NOT_INSTALLED)
+
+    def test_unknown_when_uv_absent(self):
+        with mock.patch.object(version, "_distribution_installed", return_value=True), \
+             mock.patch.object(version, "find_uv", return_value=None):
+            self.assertEqual(version.classify_uninstall(), version.UNKNOWN_UV_ABSENT)
+
+    def test_uv_managed_when_listed(self):
+        with mock.patch.object(version, "_distribution_installed", return_value=True), \
+             mock.patch.object(version, "uv_tool_list_names",
+                               return_value={version.DIST_NAME}):
+            self.assertEqual(version.classify_uninstall("/usr/bin/uv"), version.UV_MANAGED)
+
+    def test_pip_or_source_when_not_listed(self):
+        with mock.patch.object(version, "_distribution_installed", return_value=True), \
+             mock.patch.object(version, "uv_tool_list_names", return_value={"ruff"}):
+            self.assertEqual(version.classify_uninstall("/usr/bin/uv"), version.PIP_OR_SOURCE)
+
+
+class PerformUninstallTests(unittest.TestCase):
+    def test_success_invokes_uv_tool_uninstall(self):
+        captured = {}
+
+        def fake_run(cmd, *a, **k):
+            captured["cmd"] = cmd
+            return _Proc(0)
+
+        with mock.patch.object(version, "find_uv", return_value="/usr/bin/uv"), \
+             mock.patch.object(version.subprocess, "run", side_effect=fake_run):
+            version.perform_uninstall()  # must not raise
+        self.assertEqual(
+            captured["cmd"],
+            ["/usr/bin/uv", "tool", "uninstall", version.DIST_NAME],
+        )
+
+    def test_nonzero_raises_with_manual_command(self):
+        with mock.patch.object(version, "find_uv", return_value="/usr/bin/uv"), \
+             mock.patch.object(version.subprocess, "run", return_value=_Proc(1)):
+            with self.assertRaises(version.UninstallError) as cm:
+                version.perform_uninstall()
+        self.assertIn(f"uv tool uninstall {version.DIST_NAME}", str(cm.exception))
+
+    def test_oserror_raises_with_manual_command(self):
+        with mock.patch.object(version, "find_uv", return_value="/usr/bin/uv"), \
+             mock.patch.object(version.subprocess, "run", side_effect=OSError("boom")):
+            with self.assertRaises(version.UninstallError) as cm:
+                version.perform_uninstall()
+        self.assertIn(f"uv tool uninstall {version.DIST_NAME}", str(cm.exception))
+
+    def test_missing_uv_raises_with_manual_command(self):
+        with mock.patch.object(version, "find_uv", return_value=None):
+            with self.assertRaises(version.UninstallError) as cm:
+                version.perform_uninstall()
+        self.assertIn(f"uv tool uninstall {version.DIST_NAME}", str(cm.exception))
+
+
 if __name__ == "__main__":
     unittest.main()
