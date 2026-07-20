@@ -1,8 +1,9 @@
 """Single command-line entry point for the Cisco Advisory Impact Agent.
 
 Installed as the `caia` console script (see pyproject.toml). Dispatches
-`--help`/`--version`/`--update`/`--config` and, with no mode flag, the interactive/flag-driven
-analysis run. Ctrl+C anywhere exits 130 with no traceback (Constitution III, FR-012).
+`--help`/`--version`/`--update`/`--uninstall`/`--config` and, with no mode flag, the
+interactive/flag-driven analysis run. Ctrl+C anywhere exits 130 with no traceback
+(Constitution III, FR-012).
 """
 
 from __future__ import annotations
@@ -56,8 +57,12 @@ def build_parser():
                     help="Print the installed version and check for a newer one")
     ap.add_argument("--update", action="store_true",
                     help="Update to the latest published version via uv")
+    ap.add_argument("--uninstall", action="store_true",
+                    help="Remove caia via uv (your saved config is kept)")
     ap.add_argument("--config", dest="do_config", action="store_true",
                     help="Set your FueliX API key and model (stored per-user)")
+    ap.add_argument("--yes", "-y", dest="yes", action="store_true",
+                    help="Skip confirmation prompts (for scripted/unattended use)")
     # Analysis flags (a supplied flag skips its interactive prompt — FR-025).
     ap.add_argument("--url", help="ERP page URL or single advisory URL (else prompted)")
     ap.add_argument("--inventory",
@@ -81,6 +86,8 @@ def _dispatch(argv):
         return cmd_version()
     if args.update:
         return cmd_update()
+    if args.uninstall:
+        return cmd_uninstall(args)
     if args.do_config:
         return config.run_config()
     return cmd_run(args)
@@ -128,6 +135,66 @@ def cmd_update():
         return 4
     ui.ok(f"Updated to {ui.bold(tag)}. "
           "Run " + ui.bold("caia") + " again to use it.")
+    return 0
+
+
+# --------------------------------------------------------------------------- #
+# --uninstall
+# --------------------------------------------------------------------------- #
+def _report_preserved_config():
+    """Tell the user where their saved settings remain (never deleted; contents never read)."""
+    path = config.config_path()
+    if path.exists():
+        ui.plain("Your saved settings (API key and model) were left untouched at:")
+        ui.plain("    " + ui.bold(str(path)))
+        ui.plain(ui.dim("Delete that file yourself if you want it gone."))
+    else:
+        ui.plain(ui.dim("No saved configuration was found, so nothing was left behind."))
+
+
+def cmd_uninstall(args):
+    """Remove the uv-installed tool. Exit 0 iff caia ends up not installed as a uv tool
+    (removed, or already absent); non-zero when action is still needed (declined, uv missing,
+    or removal failed). The per-user config is always preserved and its location disclosed.
+    """
+    kind = version.classify_uninstall()
+
+    # Not a uv tool -> idempotent no-op (source checkout or pip install). Exit 0. (FR-007)
+    if kind in (version.NOT_INSTALLED, version.PIP_OR_SOURCE):
+        ui.info("caia is not installed as a uv tool, so there is nothing to uninstall.")
+        if kind == version.PIP_OR_SOURCE:
+            ui.plain(ui.dim("This looks like a source or pip install; remove it with the Python "
+                            "tooling you installed it with."))
+        else:
+            ui.plain(ui.dim("You appear to be running from a source checkout."))
+        return 0
+
+    # Installed as a distribution but uv cannot be located -> manual step required. (FR-008)
+    if kind == version.UNKNOWN_UV_ABSENT:
+        ui.fail("uv was not found on PATH, so caia cannot uninstall itself automatically.")
+        ui.plain("Remove it manually with:\n    "
+                 + ui.bold(f"uv tool uninstall {version.DIST_NAME}"))
+        return 4
+
+    # kind == UV_MANAGED: gate on confirmation, then remove.
+    if not args.yes:
+        if not sys.stdin.isatty():
+            ui.fail("Refusing to uninstall without confirmation in a non-interactive session.")
+            ui.plain("Re-run with " + ui.bold("--yes") + " to skip the prompt.")
+            return 2
+        ui.warn("This will remove caia (the uv tool and its command).")
+        if not ui.confirm("Uninstall caia now?", default=False):
+            ui.info("Cancelled. Nothing was removed.")
+            return 1
+
+    ui.info("Removing caia via uv ...")
+    try:
+        version.perform_uninstall()
+    except version.UninstallError as e:
+        ui.fail(f"Uninstall failed: {e}")
+        return 4
+    ui.ok("caia has been uninstalled.")
+    _report_preserved_config()
     return 0
 
 

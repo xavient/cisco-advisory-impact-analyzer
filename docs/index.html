@@ -285,6 +285,14 @@ caia</code></pre>
 caia --update</code></pre>
           A normal run also offers to update first when a newer version is available.
         </li>
+        <li>
+          <b>Uninstall</b> — remove the tool the same way it was installed (add
+          <code>--yes</code> to skip the prompt, e.g. for scripts):
+          <pre><code>caia --uninstall</code></pre>
+          Your saved settings are kept — the per-user config file is never touched, and the tool
+          prints its location so you can delete it yourself. If you installed without uv, it
+          reports there's nothing to uninstall.
+        </li>
       </ol>
       <div class="callout">
         <b>No uv?</b> You can install with just Python 3.9+ (a <code>venv</code> +

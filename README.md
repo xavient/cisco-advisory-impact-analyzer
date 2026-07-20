@@ -184,6 +184,31 @@ blocks a run; skip it with `--no-update-check` or `CAIA_NO_UPDATE_CHECK=1`.
 
 ---
 
+## Uninstall
+
+Remove the tool the same way it was installed — with one command:
+
+```bash
+caia --uninstall          # asks you to confirm first
+caia --uninstall --yes    # skip the prompt (for scripts / fleet cleanup)
+```
+
+This removes the `caia` command and its uv-managed environment. **Your saved settings are kept** —
+the per-user config file (see [Configuration](#configuration-your-api-key) for its exact location)
+is never touched, so your API key is preserved; on success the tool prints the path and you can
+delete that file yourself if you want it gone.
+
+- `--uninstall` is uv-specific. If you installed [without uv](#install-without-uv-python-only), it
+  reports there's nothing to uninstall — remove it with the Python tooling you used
+  (e.g. `pip uninstall cisco-advisory-impact-agent`).
+- If uv can't be found, it prints the exact manual command: `uv tool uninstall cisco-advisory-impact-agent`.
+- On Windows, if the running command can't remove itself, close the terminal and run that manual
+  command from a fresh shell.
+- The exit status is script-friendly: `0` once the tool is gone (including when it was already not
+  installed), non-zero when action is still needed (declined, uv missing, or removal failed).
+
+---
+
 ## Configuration (your API key)
 
 `caia --config` stores your settings in a per-user file, so every run
@@ -273,7 +298,7 @@ to suppress it everywhere.
 
 | Module | Responsibility |
 | ------ | -------------- |
-| `cli.py` | single entry point; dispatches `--help`/`--version`/`--update`/`--config` and the run |
+| `cli.py` | single entry point; dispatches `--help`/`--version`/`--update`/`--uninstall`/`--config` and the run |
 | `analyzer.py` | run flow + interactive prompts (working-folder inventory + `output/`) |
 | `cisco.py` | fetch ERP/CSAF, discover advisories, extract sections + affected versions |
 | `inventory.py` | read the inventory, collapse it into distinct model/type/version combos |

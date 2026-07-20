@@ -29,7 +29,7 @@ Single-project CLI. Source lives in `cisco_advisory_impact_agent/`, tests in `te
 
 **Purpose**: Establish a clean baseline before changing anything
 
-- [ ] T001 Establish a green baseline: run `python -m pytest -q` from the repo root and confirm the existing suite passes. Confirm no new runtime dependency is required (feature is standard-library only per plan.md).
+- [X] T001 Establish a green baseline: run `python -m pytest -q` from the repo root and confirm the existing suite passes. Confirm no new runtime dependency is required (feature is standard-library only per plan.md).
 
 ---
 
@@ -39,13 +39,13 @@ Single-project CLI. Source lives in `cisco_advisory_impact_agent/`, tests in `te
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete.
 
-- [ ] T002 Add `UninstallError(Exception)` to `cisco_advisory_impact_agent/version.py`, mirroring the existing `UpdateError` (docstring: "a `--uninstall` could not be completed; the install is left as-is").
-- [ ] T003 Add `_distribution_installed()` to `cisco_advisory_impact_agent/version.py`: return `True`/`False` using `importlib.metadata.version(DIST_NAME)` (catch `PackageNotFoundError` → `False`). This is the "installed as a distribution?" signal (distinct from `read_installed_version()`, which falls back to the VERSION file).
-- [ ] T004 Add `uv_tool_list_names(uv_path)` to `cisco_advisory_impact_agent/version.py`: run `uv tool list`, parse the leading tool/distribution name of each line into a set; return an empty set on any `OSError`/non-zero (never raise). Used to authoritatively answer "is this a uv tool?" per research Decision 3.
-- [ ] T005 Add `InstallKind` constants (`UV_MANAGED`, `NOT_INSTALLED`, `PIP_OR_SOURCE`, `UNKNOWN_UV_ABSENT`) and `classify_uninstall(uv_path=None)` to `cisco_advisory_impact_agent/version.py`, composing `find_uv()`, `_distribution_installed()`, and `uv_tool_list_names()` into the decision tree from data-model.md (`NOT_INSTALLED` when metadata absent; `UV_MANAGED` when `uv` present and `DIST_NAME` listed; `PIP_OR_SOURCE` when `uv` present and not listed; `UNKNOWN_UV_ABSENT` when metadata present but `uv` not locatable).
-- [ ] T006 Add `perform_uninstall()` to `cisco_advisory_impact_agent/version.py`, mirroring `perform_update()`: build the manual command string `uv tool uninstall cisco-advisory-impact-agent`, run `[uv, "tool", "uninstall", DIST_NAME]`, raise `UninstallError` (with the manual command and the Windows "close this command and run … from a fresh shell" note) on `OSError` or a non-zero return code.
-- [ ] T007 [P] Add the `--uninstall` mode flag and the `--yes`/`-y` modifier to `build_parser()` in `cisco_advisory_impact_agent/cli.py`, with help text sitting beside `--update`/`--config` (different file from T002–T006, so parallelizable with the `version.py` stream).
-- [ ] T008 Wire `--uninstall` into `_dispatch()` in `cisco_advisory_impact_agent/cli.py` to call `cmd_uninstall(args)` within the existing mode-precedence chain (version → update → uninstall → config → run; modes are mutually exclusive, not combined). `cmd_uninstall` itself is implemented in US1 (T009).
+- [X] T002 Add `UninstallError(Exception)` to `cisco_advisory_impact_agent/version.py`, mirroring the existing `UpdateError` (docstring: "a `--uninstall` could not be completed; the install is left as-is").
+- [X] T003 Add `_distribution_installed()` to `cisco_advisory_impact_agent/version.py`: return `True`/`False` using `importlib.metadata.version(DIST_NAME)` (catch `PackageNotFoundError` → `False`). This is the "installed as a distribution?" signal (distinct from `read_installed_version()`, which falls back to the VERSION file).
+- [X] T004 Add `uv_tool_list_names(uv_path)` to `cisco_advisory_impact_agent/version.py`: run `uv tool list`, parse the leading tool/distribution name of each line into a set; return an empty set on any `OSError`/non-zero (never raise). Used to authoritatively answer "is this a uv tool?" per research Decision 3.
+- [X] T005 Add `InstallKind` constants (`UV_MANAGED`, `NOT_INSTALLED`, `PIP_OR_SOURCE`, `UNKNOWN_UV_ABSENT`) and `classify_uninstall(uv_path=None)` to `cisco_advisory_impact_agent/version.py`, composing `find_uv()`, `_distribution_installed()`, and `uv_tool_list_names()` into the decision tree from data-model.md (`NOT_INSTALLED` when metadata absent; `UV_MANAGED` when `uv` present and `DIST_NAME` listed; `PIP_OR_SOURCE` when `uv` present and not listed; `UNKNOWN_UV_ABSENT` when metadata present but `uv` not locatable).
+- [X] T006 Add `perform_uninstall()` to `cisco_advisory_impact_agent/version.py`, mirroring `perform_update()`: build the manual command string `uv tool uninstall cisco-advisory-impact-agent`, run `[uv, "tool", "uninstall", DIST_NAME]`, raise `UninstallError` (with the manual command and the Windows "close this command and run … from a fresh shell" note) on `OSError` or a non-zero return code.
+- [X] T007 [P] Add the `--uninstall` mode flag and the `--yes`/`-y` modifier to `build_parser()` in `cisco_advisory_impact_agent/cli.py`, with help text sitting beside `--update`/`--config` (different file from T002–T006, so parallelizable with the `version.py` stream).
+- [X] T008 Wire `--uninstall` into `_dispatch()` in `cisco_advisory_impact_agent/cli.py` to call `cmd_uninstall(args)` within the existing mode-precedence chain (version → update → uninstall → config → run; modes are mutually exclusive, not combined). `cmd_uninstall` itself is implemented in US1 (T009).
 
 **Checkpoint**: Shared helpers exist and are unit-testable; the CLI parses `--uninstall`/`--yes` and dispatches to `cmd_uninstall`.
 
@@ -59,10 +59,10 @@ Single-project CLI. Source lives in `cisco_advisory_impact_agent/`, tests in `te
 
 ### Implementation for User Story 1
 
-- [ ] T009 [US1] Implement `cmd_uninstall(args)` in `cisco_advisory_impact_agent/cli.py`: call `version.classify_uninstall()`; for `UV_MANAGED`, confirm via `ui.confirm("Remove caia?", default=False)` unless `args.yes`; on proceed, call `version.perform_uninstall()`; catch `version.UninstallError` → `ui.fail(...)` and return non-zero; on success → `ui.ok(...)` and return 0. (Other `InstallKind` branches are added in US2/US3; a decline returns non-zero.)
-- [ ] T010 [US1] Add success-time config disclosure in `cmd_uninstall` (`cisco_advisory_impact_agent/cli.py`, importing `config`): if `config.config_path().exists()`, report its path and how to delete it manually; otherwise state there was no saved configuration to preserve. Never read or print the file's contents (Constitution V / contract INV-1).
-- [ ] T011 [P] [US1] Add CLI tests in `tests/test_cli.py` (patching `version.classify_uninstall`→`UV_MANAGED`, `version.perform_uninstall`, `config.config_path`, capturing stdout via `contextlib.redirect_stdout`): happy path with `--yes` (perform called, exit 0, config path in output); interactive confirm accepted vs declined (declined → not called, non-zero, install intact); config present vs absent messaging (FR-005).
-- [ ] T012 [P] [US1] Add version tests in `tests/test_version.py` (patching `version.find_uv` and the removal subprocess, per existing `find_uv` test patterns): `perform_uninstall()` success (correct `uv tool uninstall DIST_NAME` argv, no raise) and failure (non-zero return and `OSError` both raise `UninstallError` carrying the manual command).
+- [X] T009 [US1] Implement `cmd_uninstall(args)` in `cisco_advisory_impact_agent/cli.py`: call `version.classify_uninstall()`; for `UV_MANAGED`, confirm via `ui.confirm("Remove caia?", default=False)` unless `args.yes`; on proceed, call `version.perform_uninstall()`; catch `version.UninstallError` → `ui.fail(...)` and return non-zero; on success → `ui.ok(...)` and return 0. (Other `InstallKind` branches are added in US2/US3; a decline returns non-zero.)
+- [X] T010 [US1] Add success-time config disclosure in `cmd_uninstall` (`cisco_advisory_impact_agent/cli.py`, importing `config`): if `config.config_path().exists()`, report its path and how to delete it manually; otherwise state there was no saved configuration to preserve. Never read or print the file's contents (Constitution V / contract INV-1).
+- [X] T011 [P] [US1] Add CLI tests in `tests/test_cli.py` (patching `version.classify_uninstall`→`UV_MANAGED`, `version.perform_uninstall`, `config.config_path`, capturing stdout via `contextlib.redirect_stdout`): happy path with `--yes` (perform called, exit 0, config path in output); interactive confirm accepted vs declined (declined → not called, non-zero, install intact); config present vs absent messaging (FR-005).
+- [X] T012 [P] [US1] Add version tests in `tests/test_version.py` (patching `version.find_uv` and the removal subprocess, per existing `find_uv` test patterns): `perform_uninstall()` success (correct `uv tool uninstall DIST_NAME` argv, no raise) and failure (non-zero return and `OSError` both raise `UninstallError` carrying the manual command).
 
 **Checkpoint**: `caia --uninstall`/`--uninstall --yes` fully removes a uv-managed install and discloses the preserved config — MVP shippable and independently testable.
 
@@ -76,9 +76,9 @@ Single-project CLI. Source lives in `cisco_advisory_impact_agent/`, tests in `te
 
 ### Implementation for User Story 2
 
-- [ ] T013 [US2] Extend `cmd_uninstall` gating in `cisco_advisory_impact_agent/cli.py` for the `UV_MANAGED` branch, in order: `args.yes` → proceed without prompting; elif `not sys.stdin.isatty()` → refuse (message: `--yes` is required for non-interactive use), make no changes, return non-zero (FR-003a); else prompt as in US1.
-- [ ] T014 [US2] Extend `cmd_uninstall` in `cisco_advisory_impact_agent/cli.py` for the idempotent branches: `NOT_INSTALLED` and `PIP_OR_SOURCE` → print an informational "not installed as a uv tool; nothing to uninstall" message and return 0 (no prompt, no changes) per research Decision 9.
-- [ ] T015 [US2] Add CLI tests in `tests/test_cli.py`: `--yes` suppresses the prompt (no `input` call) and exits 0; non-interactive (`isatty`→False) without `--yes` refuses with non-zero and does not call `perform_uninstall`; `NOT_INSTALLED` and `PIP_OR_SOURCE` each exit 0 with the informational message; a repeat run stays exit 0 (idempotence for fleet cleanup).
+- [X] T013 [US2] Extend `cmd_uninstall` gating in `cisco_advisory_impact_agent/cli.py` for the `UV_MANAGED` branch, in order: `args.yes` → proceed without prompting; elif `not sys.stdin.isatty()` → refuse (message: `--yes` is required for non-interactive use), make no changes, return non-zero (FR-003a); else prompt as in US1.
+- [X] T014 [US2] Extend `cmd_uninstall` in `cisco_advisory_impact_agent/cli.py` for the idempotent branches: `NOT_INSTALLED` and `PIP_OR_SOURCE` → print an informational "not installed as a uv tool; nothing to uninstall" message and return 0 (no prompt, no changes) per research Decision 9.
+- [X] T015 [US2] Add CLI tests in `tests/test_cli.py`: `--yes` suppresses the prompt (no `input` call) and exits 0; non-interactive (`isatty`→False) without `--yes` refuses with non-zero and does not call `perform_uninstall`; `NOT_INSTALLED` and `PIP_OR_SOURCE` each exit 0 with the informational message; a repeat run stays exit 0 (idempotence for fleet cleanup).
 
 **Checkpoint**: Scripted/fleet removal works; already-clean machines exit 0; unsafe non-interactive removal is refused.
 
@@ -92,9 +92,9 @@ Single-project CLI. Source lives in `cisco_advisory_impact_agent/`, tests in `te
 
 ### Implementation for User Story 3
 
-- [ ] T016 [US3] Extend `cmd_uninstall` in `cisco_advisory_impact_agent/cli.py` for `UNKNOWN_UV_ABSENT`: print that `uv` could not be located plus the exact manual removal command, make no changes, return non-zero (FR-008).
-- [ ] T017 [US3] Verify/round out the `REMOVAL_FAILED` path in `cisco_advisory_impact_agent/cli.py`: `cmd_uninstall` catches `version.UninstallError` and surfaces its full actionable message (manual command + Windows "run from a fresh shell" guidance from T006), returning non-zero and claiming no success (FR-011, FR-013).
-- [ ] T018 [US3] Add CLI tests in `tests/test_cli.py`: `UNKNOWN_UV_ABSENT` → manual command printed, non-zero, `perform_uninstall` not called (AS2); `perform_uninstall` raising `UninstallError` → actionable message surfaced, non-zero, no false success (AS3); `PIP_OR_SOURCE` message clearly explains a source/pip install (AS1).
+- [X] T016 [US3] Extend `cmd_uninstall` in `cisco_advisory_impact_agent/cli.py` for `UNKNOWN_UV_ABSENT`: print that `uv` could not be located plus the exact manual removal command, make no changes, return non-zero (FR-008).
+- [X] T017 [US3] Verify/round out the `REMOVAL_FAILED` path in `cisco_advisory_impact_agent/cli.py`: `cmd_uninstall` catches `version.UninstallError` and surfaces its full actionable message (manual command + Windows "run from a fresh shell" guidance from T006), returning non-zero and claiming no success (FR-011, FR-013).
+- [X] T018 [US3] Add CLI tests in `tests/test_cli.py`: `UNKNOWN_UV_ABSENT` → manual command printed, non-zero, `perform_uninstall` not called (AS2); `perform_uninstall` raising `UninstallError` → actionable message surfaced, non-zero, no false success (AS3); `PIP_OR_SOURCE` message clearly explains a source/pip install (AS1).
 
 **Checkpoint**: Every non-removable situation yields a clear, actionable message and a correct exit code — no confusing failures, no half-removed state.
 
@@ -104,10 +104,10 @@ Single-project CLI. Source lives in `cisco_advisory_impact_agent/`, tests in `te
 
 **Purpose**: Documentation consistency (Documentation quality gate) and end-to-end validation
 
-- [ ] T019 [P] Add an "Uninstall" section to `README.md` beside Install/Update: `caia --uninstall` (and `--yes`), that the saved API key/config is preserved and where it lives, and the manual `uv tool uninstall cisco-advisory-impact-agent` fallback.
-- [ ] T020 [P] Mirror the same uninstall instructions in `docs/index.html` (the Documentation gate requires README and the landing page to stay consistent with each other and the code).
-- [ ] T021 Run the full suite `python -m pytest -q` from the repo root and confirm all tests pass (existing + new).
-- [ ] T022 Execute the [quickstart.md](./quickstart.md) validation: automated (`pytest tests/test_version.py tests/test_cli.py`) and, on a throwaway uv install, manual Scenarios A–G; note any scenario that could not be exercised.
+- [X] T019 [P] Add an "Uninstall" section to `README.md` beside Install/Update: `caia --uninstall` (and `--yes`), that the saved API key/config is preserved and where it lives, and the manual `uv tool uninstall cisco-advisory-impact-agent` fallback.
+- [X] T020 [P] Mirror the same uninstall instructions in `docs/index.html` (the Documentation gate requires README and the landing page to stay consistent with each other and the code).
+- [X] T021 Run the full suite `python -m pytest -q` from the repo root and confirm all tests pass (existing + new).
+- [X] T022 Execute the [quickstart.md](./quickstart.md) validation: automated (`pytest tests/test_version.py tests/test_cli.py`) and, on a throwaway uv install, manual Scenarios A–G; note any scenario that could not be exercised.
 
 ---
 
