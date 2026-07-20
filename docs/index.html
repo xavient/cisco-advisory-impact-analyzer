@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Cisco Advisory Impact Analyzer</title>
+<title>Cisco Advisory Impact Agent</title>
 <meta name="description" content="Know which of your Cisco firewalls are affected by a security advisory. Paste an ERP link, get an Excel impact report." />
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%2322d3ee' d='M12 1 3 5v6c0 5 3.8 9.7 9 11 5.2-1.3 9-6 9-11V5l-9-4Z'/%3E%3Cpath fill='%23071018' d='m11 15-2.5-2.5 1.4-1.4L11 12.2l3.1-3.1 1.4 1.4L11 15Z'/%3E%3C/svg%3E" />
 <style>
@@ -156,6 +156,22 @@
   }
   code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 13.5px; }
   pre code { color: #cfe8f5; }
+  /* Copy-to-clipboard button on command blocks (button injected by script below). */
+  .codewrap { position: relative; margin: 12px 0 0; }
+  .codewrap pre { margin: 0; }
+  .copy-btn {
+    position: absolute; top: 8px; right: 8px;
+    display: inline-flex; align-items: center; gap: 6px;
+    font: 600 12px/1 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    color: var(--muted); background: var(--code-bg);
+    border: 1px solid var(--border); border-radius: 8px;
+    padding: 6px 9px; cursor: pointer;
+    transition: color .15s ease, border-color .15s ease;
+  }
+  .copy-btn:hover { color: var(--text); border-color: var(--accent-2); }
+  .copy-btn:focus-visible { outline: 2px solid var(--accent-2); outline-offset: 2px; }
+  .copy-btn.copied { color: var(--green); border-color: var(--green); cursor: default; }
+  .copy-btn svg { width: 14px; height: 14px; flex: none; }
   p code, li code {
     background: var(--panel-2); border: 1px solid var(--border);
     padding: 1px 6px; border-radius: 6px; font-size: 13px; color: #cfe8f5;
@@ -191,7 +207,7 @@
 
   <section class="hero">
     <span class="eyebrow"><span class="dot"></span> TELUS Digital · Security Tooling</span>
-    <h1>Cisco Advisory Impact Analyzer</h1>
+    <h1>Cisco Advisory Impact Agent</h1>
     <p class="tagline">Know which of your firewalls a Cisco advisory actually affects.</p>
     <p class="lede">
       Paste a Cisco <b>Event Response (ERP)</b> link. The tool pulls every referenced
@@ -246,27 +262,27 @@
       <ol class="steps">
         <li>
           <b>Install the tool</b> with uv (one command, works the same on every OS):
-          <pre><code>uv tool install cisco-advisory-impact-analyzer \
+          <pre><code>uv tool install cisco-advisory-impact-agent \
   --from git+https://github.com/xavient/cisco-advisory-impact-analyzer</code></pre>
-          This puts a single <code>cisco-advisory-impact-analyzer</code> command on your PATH —
+          This puts a single <code>caia</code> command on your PATH —
           no cloning, no virtual environment to activate.
         </li>
         <li>
           <b>Configure your API key</b> (stored once, per user; used from any folder):
-          <pre><code>cisco-advisory-impact-analyzer --config</code></pre>
+          <pre><code>caia --config</code></pre>
         </li>
         <li>
           <b>Run it</b> from the folder that holds your inventory <code>.xlsx</code>, then paste
           your Cisco ERP link when prompted:
           <pre><code>cd /path/to/your/inventory-folder
-cisco-advisory-impact-analyzer</code></pre>
+caia</code></pre>
           The report <code>analysis_output_&lt;date&gt;.xlsx</code> appears in an <code>output</code>
           folder inside that same folder.
         </li>
         <li>
           <b>Stay up to date</b> — check your version and update via uv:
-          <pre><code>cisco-advisory-impact-analyzer --version
-cisco-advisory-impact-analyzer --update</code></pre>
+          <pre><code>caia --version
+caia --update</code></pre>
           A normal run also offers to update first when a newer version is available.
         </li>
       </ol>
@@ -287,14 +303,14 @@ cisco-advisory-impact-analyzer --update</code></pre>
         <li>Go to <a href="https://dev.fuelix.ai">dev.fuelix.ai</a> and log in.</li>
         <li>Open your <b>Default</b> project → the <b>“…”</b> menu → <b>View</b>.</li>
         <li>Under <b>API keys</b>, copy the key that’s already listed.</li>
-        <li>Paste it when you run <code>cisco-advisory-impact-analyzer --config</code>.</li>
+        <li>Paste it when you run <code>caia --config</code>.</li>
       </ol>
       <p class="muted" style="margin:14px 0 0">Keep your key private — it’s stored locally in a per-user config file (owner-only) and is never shared or committed.</p>
     </div>
   </section>
 
   <footer class="site">
-    <span>Cisco Advisory Impact Analyzer · TELUS Digital</span>
+    <span>Cisco Advisory Impact Agent · TELUS Digital</span>
     <span><a href="https://github.com/xavient/cisco-advisory-impact-analyzer">github.com/xavient/cisco-advisory-impact-analyzer</a></span>
   </footer>
 
@@ -320,6 +336,63 @@ cisco-advisory-impact-analyzer --update</code></pre>
         pill.classList.add("show");
       })
       .catch(function () { /* leave the pill hidden */ });
+  })();
+
+  // Add a "Copy" button to every command block. Each <pre> is wrapped so the button stays
+  // anchored to the top-right even when a long command scrolls horizontally.
+  (function () {
+    var COPY = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
+    var TICK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>';
+
+    function copyText(text) {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        return navigator.clipboard.writeText(text);
+      }
+      // Fallback for non-secure contexts (e.g. opening the file locally over file://).
+      return new Promise(function (resolve, reject) {
+        try {
+          var ta = document.createElement("textarea");
+          ta.value = text; ta.setAttribute("readonly", "");
+          ta.style.position = "absolute"; ta.style.left = "-9999px";
+          document.body.appendChild(ta); ta.select();
+          var ok = document.execCommand("copy");
+          document.body.removeChild(ta);
+          ok ? resolve() : reject();
+        } catch (e) { reject(e); }
+      });
+    }
+
+    document.querySelectorAll("pre").forEach(function (pre) {
+      var codeEl = pre.querySelector("code") || pre;
+      var text = codeEl.textContent;
+
+      var wrap = document.createElement("div");
+      wrap.className = "codewrap";
+      pre.parentNode.insertBefore(wrap, pre);
+      wrap.appendChild(pre);
+
+      var btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "copy-btn";
+      btn.setAttribute("aria-label", "Copy command to clipboard");
+      btn.innerHTML = COPY + "<span>Copy</span>";
+      wrap.appendChild(btn);
+
+      var timer;
+      btn.addEventListener("click", function () {
+        copyText(text).then(function () {
+          clearTimeout(timer);
+          btn.classList.add("copied");
+          btn.innerHTML = TICK + "<span>Copied</span>";
+          timer = setTimeout(function () {
+            btn.classList.remove("copied");
+            btn.innerHTML = COPY + "<span>Copy</span>";
+          }, 1600);
+        }).catch(function () {
+          btn.innerHTML = COPY + "<span>Press ⌘/Ctrl+C</span>";
+        });
+      });
+    });
   })();
 </script>
 </body>

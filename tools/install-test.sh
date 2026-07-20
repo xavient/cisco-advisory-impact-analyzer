@@ -11,6 +11,9 @@
 #   tools/install-test.sh                 # test the current working tree (local mode, default)
 #   tools/install-test.sh --git           # test `--from git+<repo>@<current-branch>`
 #   tools/install-test.sh --git main      # test a specific branch/tag/commit from GitHub
+#   tools/install-test.sh --shell         # install the tool, then drop into an interactive
+#                                         #   shell in the container for manual poking
+#                                         #   (combine with --git / --image as usual)
 #   tools/install-test.sh --image python:3.12-slim   # use a different base image (default 3.9)
 #
 # Requires Docker. Local mode works offline against your tree; the container still needs
@@ -21,6 +24,7 @@ REPO_URL="https://github.com/xavient/cisco-advisory-impact-analyzer"
 IMAGE="python:3.9-slim"   # 3.9 is the minimum supported Python — install on the floor
 MODE="local"
 GIT_REF=""
+SHELL_MODE=0
 
 usage() { awk 'NR==1{next} /^#/{sub(/^# ?/,""); print; next} {exit}' "$0"; }
 
@@ -30,6 +34,7 @@ while [ $# -gt 0 ]; do
       MODE="git"
       if [ $# -gt 1 ] && [ "${2#--}" = "$2" ]; then GIT_REF="$2"; shift; fi
       ;;
+    --shell) SHELL_MODE=1 ;;
     --image) IMAGE="${2:?--image needs a value}"; shift ;;
     -h|--help) usage; exit 0 ;;
     *) echo "error: unknown argument '$1'" >&2; usage >&2; exit 2 ;;
@@ -65,8 +70,9 @@ fi
 
 echo ">> Base image: ${IMAGE}"
 
-# Script run inside the container.
-CONTAINER_SCRIPT='
+# Scripts run inside the container. SETUP is shared; then either the automated CHECKS
+# (default) or an interactive SHELL (--shell) is appended and run as one `bash -c`.
+SETUP_SCRIPT='
 set -euo pipefail
 export DEBIAN_FRONTEND=noninteractive
 echo "== installing prerequisites (curl, git) =="
@@ -79,16 +85,7 @@ export PATH="$HOME/.local/bin:$PATH"
 uv --version
 
 echo "== uv tool install (the documented command) =="
-uv tool install cisco-advisory-impact-analyzer --from "$INSTALL_FROM"
-
-echo "== command is on PATH =="
-command -v cisco-advisory-impact-analyzer
-
-echo "== --version =="
-cisco-advisory-impact-analyzer --version
-
-echo "== --help =="
-cisco-advisory-impact-analyzer --help >/dev/null && echo "help OK"
+uv tool install cisco-advisory-impact-agent --from "$INSTALL_FROM"
 
 echo "== prepare a working folder with a valid inventory =="
 mkdir -p /work && cd /work
@@ -100,27 +97,60 @@ ws.append(["fw-1", "ASA5525", "ASA", "9.16(4)67"])
 wb.save("inv.xlsx")
 print("wrote inv.xlsx")
 PY
+'
+
+CHECK_SCRIPT='
+echo "== command is on PATH =="
+command -v caia
+
+echo "== --version =="
+caia --version
+
+echo "== --help =="
+caia --help >/dev/null && echo "help OK"
 
 URL="https://sec.cloudapps.cisco.com/security/center/content/CiscoSecurityAdvisory/cisco-sa-test-abcd1234"
 
 echo "== API-key gate: a real run with no key must exit non-zero and name --config =="
-if cisco-advisory-impact-analyzer --url "$URL" --inventory inv.xlsx --no-update-check; then
+if caia --url "$URL" --inventory inv.xlsx --no-update-check; then
   echo "FAIL: expected a non-zero exit when no API key is configured"; exit 1
 fi
 echo "key gate OK (exited non-zero)"
 
 echo "== dry-run writes a report into ./output =="
-cisco-advisory-impact-analyzer --dry-run --url "$URL" --inventory inv.xlsx --no-update-check
+caia --dry-run --url "$URL" --inventory inv.xlsx --no-update-check
 ls output/analysis_output_*.xlsx >/dev/null 2>&1 && echo "report written OK" || { echo "FAIL: no report"; exit 1; }
 
 echo
 echo "ALL CHECKS PASSED"
 '
 
+# --shell: after setup, hand control to an interactive bash (fresh shell, no set -e) so the
+# key gate and other non-zero exits do not kill your session. You land in /work.
+SHELL_SCRIPT='
+echo
+echo "======================================================================"
+echo "  Ready: caia is installed, and /work has a sample inv.xlsx."
+echo "  Try:"
+echo "    caia --help"
+echo "    caia --version"
+echo "    caia --config     # set a FueliX key for a real run"
+echo "    caia --dry-run --url <ERP-or-advisory-URL> --inventory inv.xlsx --no-update-check"
+echo "  Type  exit  to leave (the container is discarded)."
+echo "======================================================================"
+echo
+exec bash
+'
+
 # The ${arr[@]+"${arr[@]}"} guard keeps an empty MOUNT_ARGS (git mode) from tripping `set -u`
 # on bash 3.2 (macOS's default).
-docker run --rm ${MOUNT_ARGS[@]+"${MOUNT_ARGS[@]}"} -e INSTALL_FROM="$INSTALL_FROM" \
-  "$IMAGE" bash -c "$CONTAINER_SCRIPT"
-
-echo
-echo ">> install-test succeeded (${MODE} mode, ${IMAGE})."
+if [ "$SHELL_MODE" = "1" ]; then
+  echo ">> Interactive shell mode (type 'exit' to tear down the container)."
+  docker run --rm -it ${MOUNT_ARGS[@]+"${MOUNT_ARGS[@]}"} -e INSTALL_FROM="$INSTALL_FROM" \
+    "$IMAGE" bash -c "${SETUP_SCRIPT}${SHELL_SCRIPT}"
+else
+  docker run --rm ${MOUNT_ARGS[@]+"${MOUNT_ARGS[@]}"} -e INSTALL_FROM="$INSTALL_FROM" \
+    "$IMAGE" bash -c "${SETUP_SCRIPT}${CHECK_SCRIPT}"
+  echo
+  echo ">> install-test succeeded (${MODE} mode, ${IMAGE})."
+fi

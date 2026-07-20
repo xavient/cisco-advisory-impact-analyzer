@@ -15,7 +15,7 @@ from unittest import mock
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from cisco_advisory_impact_analyzer import config, fuelix  # noqa: E402
+from cisco_advisory_impact_agent import config, fuelix  # noqa: E402
 
 
 class ConfigBaseDirTests(unittest.TestCase):

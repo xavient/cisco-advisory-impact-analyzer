@@ -1,4 +1,12 @@
-# Cisco Advisory Impact Analyzer
+<p align="center">
+  <img src="docs/TELUS_Digital_logo.png" alt="TELUS Digital" width="360">
+</p>
+
+<h1 align="center">Cisco Advisory Impact Agent</h1>
+
+<p align="center"><strong>Agentic firewall impact analysis for Cisco security advisories</strong></p>
+
+---
 
 Paste a Cisco **Event Response (ERP)** link and get back a spreadsheet telling you
 **which of your firewalls are affected**.
@@ -6,11 +14,10 @@ Paste a Cisco **Event Response (ERP)** link and get back a spreadsheet telling y
 Behind the scenes it finds every security advisory referenced by the ERP, downloads each
 advisory's official data (CSAF), and uses AI (via **FueliX**) to compare the affected
 products and software releases against **your firewall inventory**. The result is a
-timestamped Excel file listing, per advisory, the impacted firewalls — or `Indeterminate`
-/ `Not Affected`.
+timestamped Excel file listing, per advisory, the impacted firewalls.
 
 Installed as a **[uv](https://docs.astral.sh/uv/) tool**: one install command, then a single
-`cisco-advisory-impact-analyzer` command you can run from any folder. Works on **macOS,
+`caia` command you can run from any folder. Works on **macOS,
 Windows, and Linux**.
 
 ---
@@ -24,7 +31,7 @@ Windows, and Linux**.
 | 3 | **Your firewall inventory** as an Excel `.xlsx` file in the folder you run from | You build this yourself (format below). |
 | 4 | **Internet access** to `sec.cloudapps.cisco.com` and `api.fuelix.ai` | Usually already available; corporate proxies can block these. |
 
-> Your API key is stored once, per user, via `cisco-advisory-impact-analyzer --config`. The
+> Your API key is stored once, per user, via `caia --config`. The
 > tool will refuse to analyze until a key is configured, and it points you to `--config`.
 
 ### Inventory format
@@ -47,17 +54,17 @@ run the tool from; the report is written to an `output/` folder next to it.
 With `uv` on your machine, install the tool straight from GitHub:
 
 ```bash
-uv tool install cisco-advisory-impact-analyzer \
+uv tool install cisco-advisory-impact-agent \
   --from git+https://github.com/xavient/cisco-advisory-impact-analyzer
 ```
 
-This puts a single **`cisco-advisory-impact-analyzer`** command on your PATH. There is no
+This puts a single **`caia`** command on your PATH. There is no
 repository to clone and no virtual environment to create or activate.
 
 Then set your FueliX API key once (stored per-user, used from any folder):
 
 ```bash
-cisco-advisory-impact-analyzer --config
+caia --config
 ```
 
 `--config` asks for your API key (typing is hidden) and lets you pick the AI model from a short
@@ -93,17 +100,17 @@ py -m venv .venv
 py -m pip install .
 ```
 
-This installs the `cisco-advisory-impact-analyzer` command **inside that environment**. From then
+This installs the `caia` command **inside that environment**. From then
 on it behaves exactly like the uv install — use it as described in [Run it](#run-it) and
-[Configuration](#configuration-your-api-key) (`cisco-advisory-impact-analyzer --config`, then
-`cisco-advisory-impact-analyzer` from your inventory folder).
+[Configuration](#configuration-your-api-key) (`caia --config`, then
+`caia` from your inventory folder).
 
 **Notes for this path:**
 
 - **Activate first, every session.** In each new terminal, re-run the activation command
   (`source .venv/bin/activate` on macOS/Linux, `.venv\Scripts\Activate.ps1` on Windows) before
   using the command. If you don't want to activate, call it by full path — e.g.
-  `.venv/bin/cisco-advisory-impact-analyzer` — or run `python -m cisco_advisory_impact_analyzer.cli`.
+  `.venv/bin/caia` — or run `python -m cisco_advisory_impact_agent.cli`.
 - **Updating is manual here.** `--update` is uv-specific and will report that uv wasn't found. To
   update, download the newer ZIP and re-run `python -m pip install .` in your environment. Pass
   `--no-update-check` to skip the start-of-run version check.
@@ -117,7 +124,7 @@ on it behaves exactly like the uv install — use it as described in [Run it](#r
 `cd` into the folder that holds your inventory `.xlsx`, then:
 
 ```bash
-cisco-advisory-impact-analyzer
+caia
 ```
 
 The tool finds your inventory in that folder (if there's more than one candidate, it lists them
@@ -161,8 +168,8 @@ The spreadsheet has three columns:
 New releases improve the advisory-matching logic, so it's worth staying current:
 
 ```bash
-cisco-advisory-impact-analyzer --version   # print your version; note if a newer one exists
-cisco-advisory-impact-analyzer --update    # update to the latest release via uv
+caia --version   # print your version; note if a newer one exists
+caia --update    # update to the latest release via uv
 ```
 
 `--update` checks the latest published release and, if newer, reinstalls the tool with `uv`
@@ -179,14 +186,14 @@ blocks a run; skip it with `--no-update-check` or `CAIA_NO_UPDATE_CHECK=1`.
 
 ## Configuration (your API key)
 
-`cisco-advisory-impact-analyzer --config` stores your settings in a per-user file, so every run
+`caia --config` stores your settings in a per-user file, so every run
 in any folder can find them:
 
 | OS | Config file |
 | -- | ----------- |
-| macOS | `~/Library/Application Support/cisco-advisory-impact-analyzer/config` |
-| Linux | `${XDG_CONFIG_HOME:-~/.config}/cisco-advisory-impact-analyzer/config` |
-| Windows | `%APPDATA%\cisco-advisory-impact-analyzer\config` |
+| macOS | `~/Library/Application Support/caia/config` |
+| Linux | `${XDG_CONFIG_HOME:-~/.config}/caia/config` |
+| Windows | `%APPDATA%\caia\config` |
 
 The file is `KEY=value` and looks like this (you may edit it by hand):
 
@@ -211,7 +218,7 @@ automation. On macOS/Linux the config file is created owner-only (`chmod 600`). 
 1. Go to **<https://dev.fuelix.ai>** and log in.
 2. You should already have a **Default** project. Click its **`...`** menu, then **View**.
 3. Under **API keys**, a key should already be listed. **Copy** it.
-4. Paste it when `cisco-advisory-impact-analyzer --config` asks for it.
+4. Paste it when `caia --config` asks for it.
 
 Each person uses **their own** key — don't share keys.
 
@@ -219,10 +226,10 @@ Each person uses **their own** key — don't share keys.
 
 ## Troubleshooting
 
-- **`cisco-advisory-impact-analyzer: command not found`** — the tool's bin directory isn't on
+- **`caia: command not found`** — the tool's bin directory isn't on
   your PATH. Run `uv tool update-shell` (or restart your terminal), or check
   `uv tool list`.
-- **`No FueliX API key is configured`** — run `cisco-advisory-impact-analyzer --config` to set
+- **`No FueliX API key is configured`** — run `caia --config` to set
   your key, or export `FUELIX_API_KEY`.
 - **`No valid inventory .xlsx found`** — run the tool from the folder that holds your inventory
   `.xlsx` (sheet `FW_List`), or pass `--inventory PATH`.
@@ -251,6 +258,10 @@ fully-specified run has no prompts at all (no update offer, no confirmation):
 | `--no-keep-temp` | delete the downloaded CSAF files when finished |
 | `--no-update-check` | skip the start-of-run version check |
 
+On startup the tool prints a splash banner. It is shown only on an interactive terminal, so
+piped or redirected output (e.g. `caia --version > file`) stays clean; set `CAIA_NO_BANNER=1`
+to suppress it everywhere.
+
 ---
 
 ## For maintainers
@@ -258,7 +269,7 @@ fully-specified run has no prompts at all (no update offer, no confirmation):
 <details>
 <summary>How it works & how to hand it out</summary>
 
-**Package layout** (`cisco_advisory_impact_analyzer/`)
+**Package layout** (`cisco_advisory_impact_agent/`)
 
 | Module | Responsibility |
 | ------ | -------------- |
@@ -280,6 +291,6 @@ combos are impacted and the tool expands them back into firewall names.
 **Handing it to teammates:** point them at the install command above. Each teammate supplies
 their own API key (`--config`) and inventory.
 
-**Local development:** install from a checkout with `uv tool install --from . cisco-advisory-impact-analyzer --force`, and run the tests with `python -m unittest discover -s tests`. See `CONTRIBUTING.md` for the release process.
+**Local development:** install from a checkout with `uv tool install --from . cisco-advisory-impact-agent --force`, and run the tests with `python -m unittest discover -s tests`. See `CONTRIBUTING.md` for the release process.
 
 </details>

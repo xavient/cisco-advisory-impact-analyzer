@@ -55,5 +55,5 @@ tie it to a product release.
 If the tag and `VERSION` disagree, the workflow fails fast with a clear error — bump `VERSION`
 in a PR first, then re-tag.
 
-> **Updating:** end users update with `cisco-advisory-impact-analyzer --update`, which reinstalls
+> **Updating:** end users update with `caia --update`, which reinstalls
 > the tool via uv pinned to the latest published release.

@@ -15,7 +15,7 @@
 
 ## 1. Executive Summary
 
-The Cisco Advisory Impact Analyzer is distributed as a downloadable ZIP with no built-in way to update. Today, staying current means manually re-downloading the ZIP and copying files over an existing install — an error-prone process that risks overwriting the user's API key, inventory, and generated reports. This BRD defines a one-command self-updater that fetches the latest published release, replaces the application files in place, and preserves the user's configuration, data, and environment — together with the version awareness the tool needs to know whether an update is warranted.
+The Cisco Advisory Impact Agent is distributed as a downloadable ZIP with no built-in way to update. Today, staying current means manually re-downloading the ZIP and copying files over an existing install — an error-prone process that risks overwriting the user's API key, inventory, and generated reports. This BRD defines a one-command self-updater that fetches the latest published release, replaces the application files in place, and preserves the user's configuration, data, and environment — together with the version awareness the tool needs to know whether an update is warranted.
 
 ## 2. Business Context & Problem Statement
 
