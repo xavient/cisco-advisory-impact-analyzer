@@ -156,6 +156,22 @@
   }
   code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 13.5px; }
   pre code { color: #cfe8f5; }
+  /* Copy-to-clipboard button on command blocks (button injected by script below). */
+  .codewrap { position: relative; margin: 12px 0 0; }
+  .codewrap pre { margin: 0; }
+  .copy-btn {
+    position: absolute; top: 8px; right: 8px;
+    display: inline-flex; align-items: center; gap: 6px;
+    font: 600 12px/1 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    color: var(--muted); background: var(--code-bg);
+    border: 1px solid var(--border); border-radius: 8px;
+    padding: 6px 9px; cursor: pointer;
+    transition: color .15s ease, border-color .15s ease;
+  }
+  .copy-btn:hover { color: var(--text); border-color: var(--accent-2); }
+  .copy-btn:focus-visible { outline: 2px solid var(--accent-2); outline-offset: 2px; }
+  .copy-btn.copied { color: var(--green); border-color: var(--green); cursor: default; }
+  .copy-btn svg { width: 14px; height: 14px; flex: none; }
   p code, li code {
     background: var(--panel-2); border: 1px solid var(--border);
     padding: 1px 6px; border-radius: 6px; font-size: 13px; color: #cfe8f5;
@@ -320,6 +336,63 @@ caia --update</code></pre>
         pill.classList.add("show");
       })
       .catch(function () { /* leave the pill hidden */ });
+  })();
+
+  // Add a "Copy" button to every command block. Each <pre> is wrapped so the button stays
+  // anchored to the top-right even when a long command scrolls horizontally.
+  (function () {
+    var COPY = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
+    var TICK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>';
+
+    function copyText(text) {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        return navigator.clipboard.writeText(text);
+      }
+      // Fallback for non-secure contexts (e.g. opening the file locally over file://).
+      return new Promise(function (resolve, reject) {
+        try {
+          var ta = document.createElement("textarea");
+          ta.value = text; ta.setAttribute("readonly", "");
+          ta.style.position = "absolute"; ta.style.left = "-9999px";
+          document.body.appendChild(ta); ta.select();
+          var ok = document.execCommand("copy");
+          document.body.removeChild(ta);
+          ok ? resolve() : reject();
+        } catch (e) { reject(e); }
+      });
+    }
+
+    document.querySelectorAll("pre").forEach(function (pre) {
+      var codeEl = pre.querySelector("code") || pre;
+      var text = codeEl.textContent;
+
+      var wrap = document.createElement("div");
+      wrap.className = "codewrap";
+      pre.parentNode.insertBefore(wrap, pre);
+      wrap.appendChild(pre);
+
+      var btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "copy-btn";
+      btn.setAttribute("aria-label", "Copy command to clipboard");
+      btn.innerHTML = COPY + "<span>Copy</span>";
+      wrap.appendChild(btn);
+
+      var timer;
+      btn.addEventListener("click", function () {
+        copyText(text).then(function () {
+          clearTimeout(timer);
+          btn.classList.add("copied");
+          btn.innerHTML = TICK + "<span>Copied</span>";
+          timer = setTimeout(function () {
+            btn.classList.remove("copied");
+            btn.innerHTML = COPY + "<span>Copy</span>";
+          }, 1600);
+        }).catch(function () {
+          btn.innerHTML = COPY + "<span>Press ⌘/Ctrl+C</span>";
+        });
+      });
+    });
   })();
 </script>
 </body>
