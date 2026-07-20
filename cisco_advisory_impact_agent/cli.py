@@ -14,8 +14,39 @@ import sys
 from cisco_advisory_impact_agent import analyzer, config, ui, version
 
 
+class _Parser(argparse.ArgumentParser):
+    """ArgumentParser whose `--help` omits the `usage:` synopsis.
+
+    Every flag is already spelled out under the options section, and the splash banner sits
+    above it, so the compact synopsis is pure duplication in `--help`. Argument *errors* still
+    print usage (via the unchanged `format_usage()`), where it's the only hint offered.
+    """
+
+    def format_help(self):
+        # argparse's own format_help(), minus the leading formatter.add_usage(...) call.
+        formatter = self._get_formatter()
+        formatter.add_text(self.description)
+        for group in self._action_groups:
+            formatter.start_section(group.title)
+            formatter.add_text(group.description)
+            formatter.add_arguments(group._group_actions)
+            formatter.end_section()
+        formatter.add_text(self.epilog)
+        return formatter.format_help()
+
+    def error(self, message):
+        # On a bad argument, show the error in red first (right below the splash), then the
+        # same options list as --help. Exit code stays 2 (argparse's convention) for scripts.
+        # Output goes to stdout, like the banner and the rest of the app, so it reliably lands
+        # after the hero rather than racing the banner on a separate stream.
+        ui.plain(ui.red(f"{self.prog}: error: {message}"))
+        ui.plain()
+        self.print_help()
+        raise SystemExit(2)
+
+
 def build_parser():
-    ap = argparse.ArgumentParser(
+    ap = _Parser(
         prog="caia",
         description="AI-driven analysis of which firewalls in your inventory are impacted "
                     "by a Cisco security advisory.",
