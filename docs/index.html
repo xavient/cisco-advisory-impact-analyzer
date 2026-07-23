@@ -183,6 +183,36 @@
     border-radius: 0 10px 10px 0; padding: 12px 16px; margin: 16px 0 0; color: var(--text); font-size: 14.5px;
   }
 
+  /* OS tabs for the "check & install uv" instructions in "Before you start". */
+  .osnote { color: var(--muted); font-size: 14.5px; margin: 22px 0 12px; }
+  .osnote b { color: var(--text); }
+  .tabs { margin-top: 6px; }
+  .tablist {
+    display: inline-flex; gap: 4px; padding: 4px; flex-wrap: wrap;
+    background: var(--code-bg); border: 1px solid var(--border); border-radius: 12px;
+  }
+  .tab {
+    appearance: none; cursor: pointer;
+    font: 600 14px/1 system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    color: var(--muted); background: transparent;
+    border: 1px solid transparent; border-radius: 9px; padding: 9px 18px;
+    transition: color .15s ease, background .15s ease;
+  }
+  .tab:hover { color: var(--text); }
+  .tab[aria-selected="true"] {
+    color: #04121a; background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  }
+  .tab:focus-visible { outline: 2px solid var(--accent-2); outline-offset: 2px; }
+  .tabpanel { margin-top: 4px; }
+  .tabpanel[hidden] { display: none; }
+  .step-label { display: block; margin: 20px 0 0; font-size: 14.5px; color: var(--text); }
+  .step-label .n {
+    color: var(--accent); font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-weight: 700; margin-right: 8px;
+  }
+  .step-label small { display: block; color: var(--muted); font-weight: 400; font-size: 13px; margin-top: 3px; }
+  .tabpanel .more { color: var(--muted); font-size: 13px; margin: 12px 0 0; }
+
   footer.site {
     border-top: 1px solid var(--border); margin-top: 30px; padding: 26px 0 46px;
     color: var(--muted); font-size: 13.5px; display: flex; justify-content: space-between; gap: 14px; flex-wrap: wrap;
@@ -248,11 +278,56 @@
     <h2><span class="num">01</span>Before you start</h2>
     <div class="panel">
       <ul class="check">
-        <li><b>uv</b> — <span>Astral's Python tool installer (<a href="https://docs.astral.sh/uv/getting-started/installation/">install once</a>); it manages Python for you.</span></li>
+        <li><b>uv</b> — <span>Astral's Python tool installer; it manages Python for you. Not sure if you have it? <a href="#get-uv">Check &amp; install it below</a>.</span></li>
         <li><b>A FueliX API key</b> — <span>each person uses their own (see “Get your key” below).</span></li>
         <li><b>Your firewall inventory</b> — <span>an Excel <code>.xlsx</code> (sheet <code>FW_List</code>) in the folder you run from.</span></li>
         <li><b>Internet access</b> — <span>to <code>sec.cloudapps.cisco.com</code> and <code>api.fuelix.ai</code>.</span></li>
       </ul>
+
+      <p class="osnote" id="get-uv"><b>Get uv</b> — first check whether it's already installed, and install it only if it isn't. Pick your operating system:</p>
+
+      <div class="tabs" data-tabs>
+        <div class="tablist" role="tablist" aria-label="Operating system">
+          <button class="tab" type="button" role="tab" id="tab-macos" aria-controls="panel-macos" aria-selected="true">macOS</button>
+          <button class="tab" type="button" role="tab" id="tab-windows" aria-controls="panel-windows" aria-selected="false" tabindex="-1">Windows</button>
+          <button class="tab" type="button" role="tab" id="tab-linux" aria-controls="panel-linux" aria-selected="false" tabindex="-1">Linux</button>
+        </div>
+
+        <!-- macOS -->
+        <div class="tabpanel" role="tabpanel" id="panel-macos" aria-labelledby="tab-macos">
+          <span class="step-label"><span class="n">1</span>Check if uv is already installed
+            <small>In the Terminal app. Prints a version number if it's there; says “command not found” if it isn't.</small></span>
+          <pre><code>uv --version</code></pre>
+          <span class="step-label"><span class="n">2</span>Not installed? Install it
+            <small>Official standalone installer — no admin rights needed.</small></span>
+          <pre><code>curl -LsSf https://astral.sh/uv/install.sh | sh</code></pre>
+          <p class="more">Prefer Homebrew? <code>brew install uv</code>. Afterwards, open a new terminal and re-run <code>uv --version</code> to confirm.</p>
+        </div>
+
+        <!-- Windows -->
+        <div class="tabpanel" role="tabpanel" id="panel-windows" aria-labelledby="tab-windows" hidden>
+          <span class="step-label"><span class="n">1</span>Check if uv is already installed
+            <small>In PowerShell. Prints a version number if it's there; errors if it isn't.</small></span>
+          <pre><code>uv --version</code></pre>
+          <span class="step-label"><span class="n">2</span>Not installed? Install it
+            <small>Official standalone installer, run in PowerShell.</small></span>
+          <pre><code>powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"</code></pre>
+          <p class="more">Prefer a package manager? <code>winget install --id=astral-sh.uv -e</code> or <code>scoop install main/uv</code>. Afterwards, open a new terminal and re-run <code>uv --version</code> to confirm.</p>
+        </div>
+
+        <!-- Linux -->
+        <div class="tabpanel" role="tabpanel" id="panel-linux" aria-labelledby="tab-linux" hidden>
+          <span class="step-label"><span class="n">1</span>Check if uv is already installed
+            <small>In your terminal. Prints a version number if it's there; says “command not found” if it isn't.</small></span>
+          <pre><code>uv --version</code></pre>
+          <span class="step-label"><span class="n">2</span>Not installed? Install it
+            <small>Official standalone installer — no root needed.</small></span>
+          <pre><code>curl -LsSf https://astral.sh/uv/install.sh | sh</code></pre>
+          <p class="more">Prefer pip/pipx? <code>pipx install uv</code> (or <code>pip install uv</code>). Afterwards, open a new terminal and re-run <code>uv --version</code> to confirm.</p>
+        </div>
+      </div>
+
+      <p class="more" style="margin-top:16px">More install methods &amp; details: <a href="https://docs.astral.sh/uv/getting-started/installation/">uv installation docs</a>.</p>
     </div>
   </section>
 
@@ -398,6 +473,36 @@ caia --update</code></pre>
           }, 1600);
         }).catch(function () {
           btn.innerHTML = COPY + "<span>Press ⌘/Ctrl+C</span>";
+        });
+      });
+    });
+  })();
+
+  // OS tab switcher for the "Get uv" instructions. Clicking a tab reveals its panel
+  // and hides the rest; ArrowLeft/ArrowRight move between tabs for keyboard users.
+  (function () {
+    document.querySelectorAll("[data-tabs]").forEach(function (group) {
+      var tabs = Array.prototype.slice.call(group.querySelectorAll('[role="tab"]'));
+      if (!tabs.length) return;
+
+      function select(tab, focus) {
+        tabs.forEach(function (t) {
+          var on = t === tab;
+          t.setAttribute("aria-selected", on ? "true" : "false");
+          t.setAttribute("tabindex", on ? "0" : "-1");
+          var panel = document.getElementById(t.getAttribute("aria-controls"));
+          if (panel) panel.hidden = !on;
+        });
+        if (focus) tab.focus();
+      }
+
+      tabs.forEach(function (tab, i) {
+        tab.addEventListener("click", function () { select(tab); });
+        tab.addEventListener("keydown", function (e) {
+          var dir = e.key === "ArrowRight" ? 1 : e.key === "ArrowLeft" ? -1 : 0;
+          if (!dir) return;
+          e.preventDefault();
+          select(tabs[(i + dir + tabs.length) % tabs.length], true);
         });
       });
     });

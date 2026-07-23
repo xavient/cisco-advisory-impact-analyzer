@@ -26,13 +26,45 @@ Windows, and Linux**.
 
 | # | Requirement | How to get it |
 | - | ----------- | ------------- |
-| 1 | **uv** (recommended) — or just **Python 3.9+** | Install uv once from <https://docs.astral.sh/uv/getting-started/installation/> (it manages Python for you). Can't install uv? See [Install without uv](#install-without-uv-python-only) — you only need Python. |
+| 1 | **uv** (recommended) — or just **Python 3.9+** | It manages Python for you. Not sure if you have it? See [Get uv](#get-uv) below — check first, install only if needed. Can't install uv? See [Install without uv](#install-without-uv-python-only) — you only need Python. |
 | 2 | **A FueliX API key** | Get yours from <https://dev.fuelix.ai> — each person needs their own (steps below). |
 | 3 | **Your firewall inventory** as an Excel `.xlsx` file in the folder you run from | You build this yourself (format below). |
 | 4 | **Internet access** to `sec.cloudapps.cisco.com` and `api.fuelix.ai` | Usually already available; corporate proxies can block these. |
 
 > Your API key is stored once, per user, via `caia --config`. The
 > tool will refuse to analyze until a key is configured, and it points you to `--config`.
+
+### Get uv
+
+First check whether uv is already installed — then install it only if it isn't.
+
+**1. Check if it's installed.** Works the same on macOS, Windows, and Linux — it prints a
+version number if uv is there, or says `command not found` (macOS/Linux) / errors (Windows)
+if it isn't:
+
+```bash
+uv --version
+```
+
+**2. Not installed? Install it** for your operating system:
+
+- **macOS / Linux** — official standalone installer (no admin/root needed):
+
+  ```bash
+  curl -LsSf https://astral.sh/uv/install.sh | sh
+  ```
+
+- **Windows** — official standalone installer, run in **PowerShell**:
+
+  ```powershell
+  powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
+  ```
+
+Prefer a package manager? Use `brew install uv` (macOS); `winget install --id=astral-sh.uv -e`
+or `scoop install main/uv` (Windows); or `pipx install uv` / `pip install uv` (any OS).
+
+After installing, open a **new** terminal and re-run `uv --version` to confirm. More methods
+and details: <https://docs.astral.sh/uv/getting-started/installation/>.
 
 ### Inventory format
 
