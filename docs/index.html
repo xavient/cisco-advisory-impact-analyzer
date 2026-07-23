@@ -183,7 +183,7 @@
     border-radius: 0 10px 10px 0; padding: 12px 16px; margin: 16px 0 0; color: var(--text); font-size: 14.5px;
   }
 
-  /* OS tabs for the "check & install uv" instructions in "Before you start". */
+  /* OS tabs for the "check & install uv/Git" instructions in "Before you start". */
   .osnote { color: var(--muted); font-size: 14.5px; margin: 22px 0 12px; }
   .osnote b { color: var(--text); }
   .tabs { margin-top: 6px; }
@@ -212,6 +212,9 @@
   }
   .step-label small { display: block; color: var(--muted); font-weight: 400; font-size: 13px; margin-top: 3px; }
   .tabpanel .more { color: var(--muted); font-size: 13px; margin: 12px 0 0; }
+  .tool-group { margin-top: 26px; padding-top: 18px; border-top: 1px solid var(--border); }
+  .tool-group:first-child { margin-top: 0; padding-top: 0; border-top: none; }
+  .tool-group > .tool-label { font-size: 13px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--accent); }
 
   footer.site {
     border-top: 1px solid var(--border); margin-top: 30px; padding: 26px 0 46px;
@@ -279,12 +282,13 @@
     <div class="panel">
       <ul class="check">
         <li><b>uv</b> — <span>Astral's Python tool installer; it manages Python for you. Not sure if you have it? <a href="#get-uv">Check &amp; install it below</a>.</span></li>
+        <li><b>Git</b> — <span>uv uses it to fetch the tool from GitHub. Not sure if you have it? <a href="#get-uv">Check &amp; install it below</a>.</span></li>
         <li><b>A FueliX API key</b> — <span>each person uses their own (see “Get your key” below).</span></li>
         <li><b>Your firewall inventory</b> — <span>an Excel <code>.xlsx</code> (sheet <code>FW_List</code>) in the folder you run from.</span></li>
         <li><b>Internet access</b> — <span>to <code>sec.cloudapps.cisco.com</code> and <code>api.fuelix.ai</code>.</span></li>
       </ul>
 
-      <p class="osnote" id="get-uv"><b>Get uv</b> — first check whether it's already installed, and install it only if it isn't. Pick your operating system:</p>
+      <p class="osnote" id="get-uv"><b>Get uv &amp; Git</b> — both are needed before you install the tool. First check whether each is already installed, and install only what's missing. Pick your operating system:</p>
 
       <div class="tabs" data-tabs>
         <div class="tablist" role="tablist" aria-label="Operating system">
@@ -295,39 +299,74 @@
 
         <!-- macOS -->
         <div class="tabpanel" role="tabpanel" id="panel-macos" aria-labelledby="tab-macos">
-          <span class="step-label"><span class="n">1</span>Check if uv is already installed
-            <small>In the Terminal app. Prints a version number if it's there; says “command not found” if it isn't.</small></span>
-          <pre><code>uv --version</code></pre>
-          <span class="step-label"><span class="n">2</span>Not installed? Install it
-            <small>Official standalone installer — no admin rights needed.</small></span>
-          <pre><code>curl -LsSf https://astral.sh/uv/install.sh | sh</code></pre>
-          <p class="more">Prefer Homebrew? <code>brew install uv</code>. Afterwards, open a new terminal and re-run <code>uv --version</code> to confirm.</p>
+          <div class="tool-group">
+            <span class="tool-label">uv</span>
+            <span class="step-label"><span class="n">1</span>Check if uv is already installed
+              <small>In the Terminal app. Prints a version number if it's there; says “command not found” if it isn't.</small></span>
+            <pre><code>uv --version</code></pre>
+            <span class="step-label"><span class="n">2</span>Not installed? Install it
+              <small>Official standalone installer — no admin rights needed.</small></span>
+            <pre><code>curl -LsSf https://astral.sh/uv/install.sh | sh</code></pre>
+            <p class="more">Prefer Homebrew? <code>brew install uv</code>. Afterwards, open a new terminal and re-run <code>uv --version</code> to confirm.</p>
+          </div>
+          <div class="tool-group">
+            <span class="tool-label">Git</span>
+            <span class="step-label"><span class="n">1</span>Check if Git is already installed
+              <small>In the Terminal app. Prints a version number if it's there; if it isn't, macOS itself offers to install the Xcode Command Line Tools (which include Git) — accept that prompt.</small></span>
+            <pre><code>git --version</code></pre>
+            <p class="more">Prefer Homebrew? <code>brew install git</code>. Afterwards, open a new terminal and re-run <code>git --version</code> to confirm.</p>
+          </div>
         </div>
 
         <!-- Windows -->
         <div class="tabpanel" role="tabpanel" id="panel-windows" aria-labelledby="tab-windows" hidden>
-          <span class="step-label"><span class="n">1</span>Check if uv is already installed
-            <small>In PowerShell. Prints a version number if it's there; errors if it isn't.</small></span>
-          <pre><code>uv --version</code></pre>
-          <span class="step-label"><span class="n">2</span>Not installed? Install it
-            <small>Official standalone installer, run in PowerShell.</small></span>
-          <pre><code>powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"</code></pre>
-          <p class="more">Prefer a package manager? <code>winget install --id=astral-sh.uv -e</code> or <code>scoop install main/uv</code>. Afterwards, open a new terminal and re-run <code>uv --version</code> to confirm.</p>
+          <div class="tool-group">
+            <span class="tool-label">uv</span>
+            <span class="step-label"><span class="n">1</span>Check if uv is already installed
+              <small>In PowerShell. Prints a version number if it's there; errors if it isn't.</small></span>
+            <pre><code>uv --version</code></pre>
+            <span class="step-label"><span class="n">2</span>Not installed? Install it
+              <small>Official standalone installer, run in PowerShell.</small></span>
+            <pre><code>powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"</code></pre>
+            <p class="more">Prefer a package manager? <code>winget install --id=astral-sh.uv -e</code> or <code>scoop install main/uv</code>. Afterwards, open a new terminal and re-run <code>uv --version</code> to confirm.</p>
+          </div>
+          <div class="tool-group">
+            <span class="tool-label">Git</span>
+            <span class="step-label"><span class="n">1</span>Check if Git is already installed
+              <small>In PowerShell. Prints a version number if it's there; errors if it isn't.</small></span>
+            <pre><code>git --version</code></pre>
+            <span class="step-label"><span class="n">2</span>Not installed? Install it
+              <small>Official installer.</small></span>
+            <pre><code>winget install --id Git.Git -e --source winget</code></pre>
+            <p class="more">Prefer a manual download? Get it from <a href="https://git-scm.com/download/win">git-scm.com</a>. Afterwards, open a new terminal and re-run <code>git --version</code> to confirm.</p>
+          </div>
         </div>
 
         <!-- Linux -->
         <div class="tabpanel" role="tabpanel" id="panel-linux" aria-labelledby="tab-linux" hidden>
-          <span class="step-label"><span class="n">1</span>Check if uv is already installed
-            <small>In your terminal. Prints a version number if it's there; says “command not found” if it isn't.</small></span>
-          <pre><code>uv --version</code></pre>
-          <span class="step-label"><span class="n">2</span>Not installed? Install it
-            <small>Official standalone installer — no root needed.</small></span>
-          <pre><code>curl -LsSf https://astral.sh/uv/install.sh | sh</code></pre>
-          <p class="more">Prefer pip/pipx? <code>pipx install uv</code> (or <code>pip install uv</code>). Afterwards, open a new terminal and re-run <code>uv --version</code> to confirm.</p>
+          <div class="tool-group">
+            <span class="tool-label">uv</span>
+            <span class="step-label"><span class="n">1</span>Check if uv is already installed
+              <small>In your terminal. Prints a version number if it's there; says “command not found” if it isn't.</small></span>
+            <pre><code>uv --version</code></pre>
+            <span class="step-label"><span class="n">2</span>Not installed? Install it
+              <small>Official standalone installer — no root needed.</small></span>
+            <pre><code>curl -LsSf https://astral.sh/uv/install.sh | sh</code></pre>
+            <p class="more">Prefer pip/pipx? <code>pipx install uv</code> (or <code>pip install uv</code>). Afterwards, open a new terminal and re-run <code>uv --version</code> to confirm.</p>
+          </div>
+          <div class="tool-group">
+            <span class="tool-label">Git</span>
+            <span class="step-label"><span class="n">1</span>Check if Git is already installed
+              <small>In your terminal. Prints a version number if it's there; says “command not found” if it isn't.</small></span>
+            <pre><code>git --version</code></pre>
+            <span class="step-label"><span class="n">2</span>Not installed? Install it with your package manager
+              <small>Debian/Ubuntu shown below; use your distro's package manager otherwise (e.g. <code>dnf install git</code>, <code>pacman -S git</code>).</small></span>
+            <pre><code>sudo apt-get update &amp;&amp; sudo apt-get install -y git</code></pre>
+          </div>
         </div>
       </div>
 
-      <p class="more" style="margin-top:16px">More install methods &amp; details: <a href="https://docs.astral.sh/uv/getting-started/installation/">uv installation docs</a>.</p>
+      <p class="more" style="margin-top:16px">More install methods &amp; details: <a href="https://docs.astral.sh/uv/getting-started/installation/">uv installation docs</a> · <a href="https://git-scm.com/downloads">Git downloads</a>.</p>
     </div>
   </section>
 

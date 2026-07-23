@@ -27,9 +27,10 @@ Windows, and Linux**.
 | # | Requirement | How to get it |
 | - | ----------- | ------------- |
 | 1 | **uv** (recommended) — or just **Python 3.9+** | It manages Python for you. Not sure if you have it? See [Get uv](#get-uv) below — check first, install only if needed. Can't install uv? See [Install without uv](#install-without-uv-python-only) — you only need Python. |
-| 2 | **A FueliX API key** | Get yours from <https://dev.fuelix.ai> — each person needs their own (steps below). |
-| 3 | **Your firewall inventory** as an Excel `.xlsx` file in the folder you run from | You build this yourself (format below). |
-| 4 | **Internet access** to `sec.cloudapps.cisco.com` and `api.fuelix.ai` | Usually already available; corporate proxies can block these. |
+| 2 | **Git** | The uv install command below pulls the tool straight from GitHub, so Git must be installed first. Not sure if you have it? See [Get Git](#get-git) below. |
+| 3 | **A FueliX API key** | Get yours from <https://dev.fuelix.ai> — each person needs their own (steps below). |
+| 4 | **Your firewall inventory** as an Excel `.xlsx` file in the folder you run from | You build this yourself (format below). |
+| 5 | **Internet access** to `sec.cloudapps.cisco.com` and `api.fuelix.ai` | Usually already available; corporate proxies can block these. |
 
 > Your API key is stored once, per user, via `caia --config`. The
 > tool will refuse to analyze until a key is configured, and it points you to `--config`.
@@ -65,6 +66,39 @@ or `scoop install main/uv` (Windows); or `pipx install uv` / `pip install uv` (a
 
 After installing, open a **new** terminal and re-run `uv --version` to confirm. More methods
 and details: <https://docs.astral.sh/uv/getting-started/installation/>.
+
+### Get Git
+
+The install command below (`uv tool install ... --from git+https://...`) fetches the tool
+straight from GitHub, so **Git** needs to be installed first — uv uses it under the hood.
+
+**1. Check if it's installed:**
+
+```bash
+git --version
+```
+
+**2. Not installed? Install it** for your operating system:
+
+- **macOS** — running `git --version` with no Git installed prompts you to install the Xcode
+  Command Line Tools (which include Git); accept that prompt. Or use Homebrew:
+  `brew install git`.
+
+- **Windows** — download the official installer from
+  <https://git-scm.com/download/win>, or:
+
+  ```powershell
+  winget install --id Git.Git -e --source winget
+  ```
+
+- **Linux** — install via your distro's package manager, e.g.:
+
+  ```bash
+  sudo apt-get update && sudo apt-get install -y git
+  ```
+
+After installing, open a **new** terminal and re-run `git --version` to confirm. More details:
+<https://git-scm.com/downloads>.
 
 ### Inventory format
 
