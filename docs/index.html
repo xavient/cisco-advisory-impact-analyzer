@@ -245,7 +245,7 @@
       ASA/FTD devices in <b>your</b> inventory are impacted — as a ready-to-share Excel report.
     </p>
     <div class="cta">
-      <a class="btn btn-primary" href="#install">
+      <a class="btn btn-primary" href="#prereqs">
         Install with uv &nbsp;<small>one command</small>
       </a>
       <a class="btn btn-ghost" href="https://github.com/xavient/cisco-advisory-impact-agent">View on GitHub</a>
@@ -337,33 +337,32 @@
       <ol class="steps">
         <li>
           <b>Install the tool</b> with uv (one command, works the same on every OS):
-          <pre><code>uv tool install cisco-advisory-impact-agent \
-  --from git+https://github.com/xavient/cisco-advisory-impact-agent</code></pre>
+          <pre>uv tool install cisco-advisory-impact-agent --from git+https://github.com/xavient/cisco-advisory-impact-agent</pre>
           This puts a single <code>caia</code> command on your PATH —
           no cloning, no virtual environment to activate.
         </li>
         <li>
           <b>Configure your API key</b> (stored once, per user; used from any folder):
-          <pre><code>caia --config</code></pre>
+          <pre>caia --config</pre>
         </li>
         <li>
           <b>Run it</b> from the folder that holds your inventory <code>.xlsx</code>, then paste
           your Cisco ERP link when prompted:
-          <pre><code>cd /path/to/your/inventory-folder
-caia</code></pre>
+          <pre>cd /path/to/your/inventory-folder</pre>
+          <pre>caia</pre>
           The report <code>analysis_output_&lt;date&gt;.xlsx</code> appears in an <code>output</code>
           folder inside that same folder.
         </li>
         <li>
           <b>Stay up to date</b> — check your version and update via uv:
-          <pre><code>caia --version
-caia --update</code></pre>
+          <pre>caia --version</pre>
+          <pre>caia --update</pre>
           A normal run also offers to update first when a newer version is available.
         </li>
         <li>
           <b>Uninstall</b> — remove the tool the same way it was installed (add
           <code>--yes</code> to skip the prompt, e.g. for scripts):
-          <pre><code>caia --uninstall</code></pre>
+          <pre>caia --uninstall</pre>
           Your saved settings are kept — the per-user config file is never touched, and the tool
           prints its location so you can delete it yourself. If you installed without uv, it
           reports there's nothing to uninstall.
